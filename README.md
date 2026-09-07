@@ -61,7 +61,7 @@ How the key is handled:
 | --- | --- |
 | `npm run dev` | Dev server on :4321 |
 | `npm run build` | Production build |
-| `npm test` | Full suite (513 tests) |
+| `npm test` | Full suite (528 tests) |
 | `npm run lint` | `tsc --noEmit` |
 | `npm run samples` | Writes one PNG per template to `samples/` |
 
@@ -277,7 +277,7 @@ topic-carousel.zip
 
 ## Testing
 
-513 tests. The ones that matter:
+528 tests. The ones that matter:
 
 - **Every preset × every slide × every palette** renders without producing a
   single `NaN` coordinate — plus bare decks, 300-word headlines, one-character
