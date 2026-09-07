@@ -22,12 +22,19 @@ export interface ResearchResult {
   lead: string;
   /** Substantive sentences pulled from article extracts. */
   facts: string[];
+  /**
+   * For each entry in `facts`, the index into `sources` it was drawn from, so a
+   * slide can credit the exact article. Same length as `facts` when present; the
+   * real researchers always populate it, but it is optional so hand-built
+   * results (and older callers) stay valid.
+   */
+  factSources?: number[];
   sources: { title: string; url: string }[];
   /** Short descriptors ("American technology company") for cover copy. */
   descriptions: string[];
 }
 
-const EMPTY: ResearchResult = { lead: "", facts: [], sources: [], descriptions: [] };
+const EMPTY: ResearchResult = { lead: "", facts: [], factSources: [], sources: [], descriptions: [] };
 
 const WIKI = "https://en.wikipedia.org";
 const UA = "carousel-maker/1.0 (keyless research; contact via app)";
@@ -125,6 +132,7 @@ export async function researchTopic(
 
   const sources: { title: string; url: string }[] = [];
   const facts: string[] = [];
+  const factSources: number[] = [];
   const descriptions: string[] = [];
   let lead = "";
   const seen = new Set<string>();
@@ -159,12 +167,12 @@ export async function researchTopic(
       if (seen.has(key)) continue;
       seen.add(key);
       facts.push(sentence);
+      factSources.push(sourceIdx);
       kept++;
-      void sourceIdx;
     }
     // Only cite an article we actually drew a fact from.
     if (primary || kept > 0) sources.push({ title: sum.title ?? pages[i].title, url });
   });
 
-  return { lead, facts, sources, descriptions };
+  return { lead, facts, factSources, sources, descriptions };
 }

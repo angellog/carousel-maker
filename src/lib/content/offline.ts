@@ -96,11 +96,60 @@ const ITEM_SETS: ((t: string) => { label: string; value: string }[])[] = [
   ],
 ];
 
-/** Turn a research sentence into a short, slide-safe phrase. */
-function toPhrase(sentence: string, max = 92): string {
-  let s = sentence.replace(/\s*\([^)]*\)/g, "").trim();
-  if (s.length > max) s = s.slice(0, max).replace(/\s+\S*$/, "") + "…";
-  return s.replace(/[.,;:]+$/, "");
+/** Function words that read badly when a phrase ends on them. */
+const TRAILING_FILLER = new Set([
+  "a", "an", "the", "and", "or", "but", "to", "of", "in", "on", "for", "with",
+  "that", "is", "are", "was", "were", "by", "as", "at", "from", "its", "their",
+  "this", "these", "which", "who", "into", "than", "then", "so", "about", "over",
+  "under", "between", "such", "via",
+]);
+
+function stripEndPunct(s: string): string {
+  return s.replace(/[\s.,;:!?—–-]+$/, "").trim();
+}
+
+/** Drop up to a few dangling function words from the end of a cut phrase. */
+function trimTrailingFiller(s: string): string {
+  let out = stripEndPunct(s);
+  for (let n = 0; n < 3; n++) {
+    const m = out.match(/\s([A-Za-z]+)$/);
+    if (m && TRAILING_FILLER.has(m[1].toLowerCase())) out = out.slice(0, m.index).trim();
+    else break;
+  }
+  return out;
+}
+
+/**
+ * Turn a research sentence into a short, slide-safe phrase.
+ *
+ * A headline that ends mid-clause with "…" reads as an unfinished thought, so we
+ * try, in order: the first whole sentence if it fits; a cut at a natural clause
+ * boundary (comma, dash, colon) that leaves a substantial phrase; and only as a
+ * last resort a word-boundary cut with a trailing "…" — with any dangling
+ * function word ("designed to", "and") trimmed off first.
+ */
+export function toPhrase(sentence: string, max = 92): string {
+  const s0 = sentence.replace(/\s*\([^)]*\)/g, "").replace(/\s+/g, " ").trim();
+  // Prefer the first sentence when several are present and it fits cleanly.
+  const first = s0.split(/(?<=[.!?])\s+/)[0];
+  const s = first && first.length <= max ? first : s0;
+  if (s.length <= max) return stripEndPunct(s);
+
+  // End at the last clause boundary before the limit, if it leaves enough.
+  const head = s.slice(0, max + 1);
+  const boundary = Math.max(
+    head.lastIndexOf(" — "),
+    head.lastIndexOf(" – "),
+    head.lastIndexOf(" - "),
+    head.lastIndexOf(", "),
+    head.lastIndexOf("; "),
+    head.lastIndexOf(": "),
+  );
+  if (boundary >= Math.floor(max * 0.5)) return stripEndPunct(s.slice(0, boundary));
+
+  // Fall back to a word-boundary cut, filler trimmed, marked as elided.
+  const wordCut = s.slice(0, max).replace(/\s+\S*$/, "");
+  return trimTrailingFiller(wordCut) + "…";
 }
 
 function fieldsFor(preset: Preset, i: number, topic: string, slideCount: number): Partial<Slide> {
@@ -224,6 +273,9 @@ export function writeOfflineDeck(args: {
   for (let i = 0; i < bodyCount; i++) {
     const f = FRAMES[i % FRAMES.length];
     const fact = facts[i];
+    const extra = fieldsFor(args.preset, i, topic, count);
+    // Credit the exact article this slide's fact came from, as small print.
+    const src = enriched && fact ? research?.sources[research?.factSources?.[i] ?? 0] : undefined;
     slides.push({
       id: `s${i + 2}`,
       role: "body",
@@ -238,7 +290,8 @@ export function writeOfflineDeck(args: {
           ? toPhrase(facts[i + bodyCount], 130)
           : undefined
         : f.body(topic, i),
-      ...fieldsFor(args.preset, i, topic, count),
+      ...extra,
+      note: src ? `Source: ${toPhrase(src.title, 44)}` : extra.note,
     });
   }
 

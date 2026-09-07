@@ -68,26 +68,39 @@ async function duckDuckGo(topic: string, fetchImpl: typeof fetch, ms: number): P
   return { facts: toSentences(data.AbstractText), sources };
 }
 
-/** Merge several partial results, deduping facts (by prefix) and sources (by URL). */
+/**
+ * Merge several partial results, deduping facts (by prefix) and sources (by URL)
+ * while preserving each fact's link to the source it came from.
+ */
 function merge(parts: (ResearchResult | Partial<ResearchResult>)[]): ResearchResult {
   const out: ResearchResult = { lead: "", facts: [], sources: [], descriptions: [] };
+  const factSources: number[] = [];
   const seenFact = new Set<string>();
-  const seenSource = new Set<string>();
+  const sourceIndex = new Map<string, number>();
   for (const p of parts) {
     if (!out.lead && p.lead) out.lead = p.lead;
     for (const d of p.descriptions ?? []) out.descriptions.push(d);
-    for (const src of p.sources ?? []) {
-      if (seenSource.has(src.url)) continue;
-      seenSource.add(src.url);
+    // Map this part's local source indices onto the merged source list.
+    const localToMerged = (p.sources ?? []).map((src) => {
+      const existing = sourceIndex.get(src.url);
+      if (existing != null) return existing;
+      const idx = out.sources.length;
       out.sources.push(src);
-    }
-    for (const f of p.facts ?? []) {
-      const key = f.toLowerCase().slice(0, 40);
+      sourceIndex.set(src.url, idx);
+      return idx;
+    });
+    const facts = p.facts ?? [];
+    for (let j = 0; j < facts.length; j++) {
+      const key = facts[j].toLowerCase().slice(0, 40);
       if (seenFact.has(key)) continue;
       seenFact.add(key);
-      out.facts.push(f);
+      out.facts.push(facts[j]);
+      const local = p.factSources?.[j];
+      const merged = local != null && localToMerged[local] != null ? localToMerged[local] : localToMerged[0] ?? 0;
+      factSources.push(merged);
     }
   }
+  out.factSources = factSources;
   return out;
 }
 
@@ -106,12 +119,16 @@ export const webResearcher: Researcher = {
 
     // Deepen the best article with its extended intro (many more sentences).
     let deeper: string[] = [];
-    const primaryTitle = wiki?.sources[0]?.title;
-    if (primaryTitle) {
-      deeper = await extendedExtract(primaryTitle, fetchImpl, 6000).catch(() => []);
+    const primary = wiki?.sources[0];
+    if (primary) {
+      deeper = await extendedExtract(primary.title, fetchImpl, 6000).catch(() => []);
     }
+    // The extended-extract facts come from the primary article, so credit it.
+    const deeperPart: Partial<ResearchResult> = primary
+      ? { facts: deeper, sources: [primary], factSources: deeper.map(() => 0) }
+      : { facts: deeper };
 
-    const result = merge([wiki ?? {}, { facts: deeper }, ddg]);
+    const result = merge([wiki ?? {}, deeperPart, ddg]);
     for (const src of result.sources) ctx.emit({ type: "source", title: src.title, url: src.url });
     return result;
   },

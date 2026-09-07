@@ -86,6 +86,17 @@ describe("researchTopic", () => {
     expect(r.descriptions.length).toBeGreaterThan(0);
   });
 
+  it("maps each fact to the source it was drawn from", async () => {
+    const r = await researchTopic("habit", { fetchImpl: stubFetch(FIXTURE) });
+    expect(r.factSources).toHaveLength(r.facts.length);
+    for (const idx of r.factSources ?? []) {
+      expect(idx).toBeGreaterThanOrEqual(0);
+      expect(idx).toBeLessThan(r.sources.length);
+    }
+    // At least one fact comes from the primary article (source 0).
+    expect(r.factSources).toContain(0);
+  });
+
   it("de-duplicates facts across articles", async () => {
     const dupFixture = {
       search: [
@@ -107,7 +118,7 @@ describe("researchTopic", () => {
       throw new Error("network down");
     }) as unknown as typeof fetch;
     const r = await researchTopic("anything", { fetchImpl: boom });
-    expect(r).toEqual({ lead: "", facts: [], sources: [], descriptions: [] });
+    expect(r).toEqual({ lead: "", facts: [], factSources: [], sources: [], descriptions: [] });
   });
 
   it("fails soft when search returns nothing", async () => {
@@ -219,6 +230,24 @@ describe("offline writer with research", () => {
     // The first three body slides carry the real facts.
     expect(bodyTitles.some((t) => /infrared astronomy/i.test(t))).toBe(true);
     expect(bodyTitles.some((t) => /largest optical telescope/i.test(t))).toBe(true);
+  });
+
+  it("credits each enriched slide with the exact source its fact came from", () => {
+    const research = {
+      lead: "An overview of panels and cells.",
+      facts: ["Solar panels convert sunlight into usable electricity.", "Photovoltaic cells rely on the semiconductor junction."],
+      factSources: [0, 1],
+      sources: [
+        { title: "Solar panel", url: "https://en.wikipedia.org/wiki/Solar_panel" },
+        { title: "Photovoltaics", url: "https://en.wikipedia.org/wiki/Photovoltaics" },
+      ],
+      descriptions: [],
+    };
+    const deck = writeOfflineDeck({ topic: "Solar panels", preset: getPreset("keynote"), slideCount: 4, research });
+    expect(deck.enriched).toBe(true);
+    const notes = deck.slides.filter((s) => s.role === "body").map((s) => s.note ?? "");
+    expect(notes.some((n) => /Source: Solar panel/.test(n))).toBe(true);
+    expect(notes.some((n) => /Source: Photovoltaics/.test(n))).toBe(true);
   });
 
   it("falls back to placeholders when research is thin", () => {
