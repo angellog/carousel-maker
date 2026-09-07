@@ -1,0 +1,86 @@
+import { describe, expect, it } from "vitest";
+import { resolveConfig, pickResearchSource, type Env } from "@/lib/providers/config";
+import type { GenerateInput } from "@/lib/content/prompt";
+
+const KEY = "sk-ant-" + "a".repeat(40); // passes sanitizeKey
+
+function input(over: Partial<GenerateInput> = {}): GenerateInput {
+  return { topic: "Photosynthesis", slideCount: 8, presetId: "keynote", research: true, ...over };
+}
+
+const OSS: Env = {
+  CAROUSEL_OSS_BASE_URL: "https://api.groq.com/openai/v1",
+  CAROUSEL_OSS_MODEL: "llama-3.3-70b-versatile",
+  CAROUSEL_OSS_API_KEY: "gsk_live_xxx",
+};
+
+describe("resolveConfig — writer precedence", () => {
+  it("prefers a bring-your-own key (Claude, billed to the user)", () => {
+    const c = resolveConfig(input({ apiKey: KEY }), { ...OSS, CAROUSEL_API_KEY: "sk-ant-server" });
+    expect(c.writer.kind).toBe("claude");
+    expect(c.writer.byok).toBe(true);
+    expect(c.writer.serverPaid).toBe(false);
+    expect(c.writer.apiKey).toBe(KEY);
+  });
+
+  it("uses a server Anthropic key next (Claude, billed to us)", () => {
+    const c = resolveConfig(input(), { CAROUSEL_API_KEY: "sk-ant-server", ...OSS });
+    expect(c.writer.kind).toBe("claude");
+    expect(c.writer.byok).toBe(false);
+    expect(c.writer.serverPaid).toBe(true);
+  });
+
+  it("falls to a configured OpenAI-compatible endpoint", () => {
+    const c = resolveConfig(input(), OSS);
+    expect(c.writer.kind).toBe("openai");
+    expect(c.writer.baseUrl).toBe(OSS.CAROUSEL_OSS_BASE_URL);
+    expect(c.writer.model).toBe(OSS.CAROUSEL_OSS_MODEL);
+    expect(c.writer.serverPaid).toBe(true); // a hosted key costs us money
+  });
+
+  it("treats a keyless OSS endpoint (local Ollama) as not server-paid", () => {
+    const c = resolveConfig(input(), { CAROUSEL_OSS_BASE_URL: "http://localhost:11434/v1", CAROUSEL_OSS_MODEL: "llama3" });
+    expect(c.writer.kind).toBe("openai");
+    expect(c.writer.serverPaid).toBe(false);
+  });
+
+  it("falls back to the keyless template writer when nothing is configured", () => {
+    const c = resolveConfig(input(), {});
+    expect(c.writer.kind).toBe("template");
+    expect(c.writer.serverPaid).toBe(false);
+  });
+
+  it("labels the OSS engine from the model and host", () => {
+    const c = resolveConfig(input(), OSS);
+    expect(c.writer.label).toMatch(/llama-3\.3-70b-versatile/);
+    expect(c.writer.label).toMatch(/groq\.com/);
+  });
+});
+
+describe("resolveConfig — research axis", () => {
+  it("gives Claude no pre-fetched research (it searches itself)", () => {
+    const c = resolveConfig(input({ apiKey: KEY, research: true }), {});
+    expect(c.research).toBe("none");
+  });
+
+  it("routes wikipedia to the template writer by default", () => {
+    const c = resolveConfig(input({ research: true }), {});
+    expect(c.writer.kind).toBe("template");
+    expect(c.research).toBe("wikipedia");
+  });
+
+  it("honours an explicit web source for OSS", () => {
+    const c = resolveConfig(input({ research: true, researchSource: "web" }), OSS);
+    expect(c.research).toBe("web");
+  });
+
+  it("is 'none' when research is off", () => {
+    const c = resolveConfig(input({ research: false }), OSS);
+    expect(c.research).toBe("none");
+  });
+
+  it("respects a server default research source", () => {
+    expect(pickResearchSource(input({ research: true }), { CAROUSEL_RESEARCH_SOURCE: "web" })).toBe("web");
+    expect(pickResearchSource(input({ research: true }), {})).toBe("wikipedia");
+  });
+});

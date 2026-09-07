@@ -174,6 +174,53 @@ describe("offline writer with research", () => {
     for (const s of deck.slides) expect(wordCount(s.title)).toBeLessThanOrEqual(MAX_TITLE_WORDS);
   });
 
+  it("never puts a generic scaffolding body under a real fact title", () => {
+    // Exactly bodyCount facts: enough to lead every body slide's title, but
+    // none left for bodies. Bodies must be empty, not the off-topic FRAMES copy.
+    const facts = [
+      "Photosynthesis converts light energy into chemical energy in plants.",
+      "The process releases oxygen as a byproduct into the atmosphere.",
+      "Chlorophyll in the chloroplasts absorbs mostly red and blue light.",
+      "Most life on Earth depends on photosynthesis for food and oxygen.",
+    ];
+    const deck = writeOfflineDeck({
+      topic: "Photosynthesis",
+      preset: getPreset("keynote"),
+      slideCount: 6, // bodyCount = 4, matches facts.length
+      research: { lead: "Photosynthesis feeds most life on Earth.", facts, sources: [{ title: "Photosynthesis", url: "https://en.wikipedia.org/wiki/Photosynthesis" }], descriptions: [] },
+    });
+    expect(deck.enriched).toBe(true);
+    const bodyText = deck.slides.filter((s) => s.role === "body").map((s) => (s.body ? plain(s.body) : ""));
+    for (const b of bodyText) {
+      expect(b).not.toMatch(/outcome that matters|Small, scheduled|optimises for effort|Before anything else/i);
+      // Any body that IS present must be one of the real facts, never a template.
+      if (b) expect(facts.some((f) => f.startsWith(b.replace(/…$/, "").trim().slice(0, 20)))).toBe(true);
+    }
+  });
+
+  it("stays enriched with a few facts instead of reverting the whole deck", () => {
+    // 3 real facts on an 8-slide deck (bodyCount 6). Old behaviour needed 6 and
+    // dropped everything to skeleton; now it enriches and degrades leftover
+    // slides to topic-anchored frames.
+    const facts = [
+      "The James Webb Space Telescope conducts infrared astronomy from space.",
+      "It is the largest optical telescope ever launched into space.",
+      "Its sunshield keeps the instruments cold enough to see faint heat.",
+    ];
+    const deck = writeOfflineDeck({
+      topic: "James Webb Space Telescope",
+      preset: getPreset("keynote"),
+      slideCount: 8,
+      research: { lead: "A giant infrared eye in space.", facts, sources: [{ title: "James Webb Space Telescope", url: "https://en.wikipedia.org/wiki/James_Webb_Space_Telescope" }], descriptions: [] },
+    });
+    expect(deck.enriched).toBe(true);
+    expect(deck.caption).toMatch(/public sources/i);
+    const bodyTitles = deck.slides.filter((s) => s.role === "body").map((s) => plain(s.title));
+    // The first three body slides carry the real facts.
+    expect(bodyTitles.some((t) => /infrared astronomy/i.test(t))).toBe(true);
+    expect(bodyTitles.some((t) => /largest optical telescope/i.test(t))).toBe(true);
+  });
+
   it("falls back to placeholders when research is thin", () => {
     const deck = writeOfflineDeck({
       topic: "Obscure topic",

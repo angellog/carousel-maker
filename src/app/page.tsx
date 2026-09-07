@@ -44,6 +44,7 @@ export default function Page() {
   const [tone, setTone] = useState(TONES[0]);
   const [slideCount, setSlideCount] = useState(8);
   const [research, setResearch] = useState(true);
+  const [researchSource, setResearchSource] = useState<"wikipedia" | "web">("wikipedia");
   const [material, setMaterial] = useState("");
   const [apiKey, setApiKey] = useState("");
 
@@ -101,11 +102,23 @@ export default function Page() {
         signal: ac.signal,
         body: JSON.stringify({
           topic, audience, handle, tone, slideCount, presetId, research,
+          researchSource: research ? researchSource : undefined,
           material: material.trim() || undefined,
           apiKey: apiKey.trim() || undefined,
         }),
       });
-      if (!res.ok || !res.body) throw new Error((await res.text().catch(() => "")) || `Request failed (${res.status})`);
+      if (!res.ok || !res.body) {
+        // Rate-limit and validation errors come back as JSON, not a stream.
+        let msg = `Request failed (${res.status})`;
+        try {
+          const j = (await res.json()) as { error?: string };
+          if (j?.error) msg = j.error;
+        } catch {
+          const t = await res.text().catch(() => "");
+          if (t) msg = t;
+        }
+        throw new Error(msg);
+      }
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
@@ -149,7 +162,7 @@ export default function Page() {
       setDeck(writeOfflineDeck({ topic, audience: audience || undefined, handle, preset, slideCount }));
       setStage("studio");
     }
-  }, [topic, audience, handle, tone, slideCount, presetId, research, material, apiKey, preset]);
+  }, [topic, audience, handle, tone, slideCount, presetId, research, researchSource, material, apiKey, preset]);
 
   const updateSlide = (next: Slide) =>
     setDeck((d) => (d ? { ...d, slides: d.slides.map((s, i) => (i === index ? next : s)) } : d));
@@ -295,7 +308,7 @@ export default function Page() {
             <button className="btn w-full justify-between" onClick={() => setSheet("options")} disabled={working}>
               <span>Options</span>
               <span className="text-sm text-[var(--color-dim)]">
-                {slideCount} slides · {research ? "research" : "no research"}
+                {slideCount} slides · {research ? (apiKey ? "live research" : researchSource === "web" ? "web" : "Wikipedia") : "no research"}
                 {apiKey ? " · own key" : ""}
               </span>
             </button>
@@ -405,8 +418,36 @@ export default function Page() {
             </div>
             <label className="tap flex items-center gap-3 text-sm">
               <input type="checkbox" checked={research} onChange={(e) => setResearch(e.target.checked)} className="size-5 accent-[var(--color-brand)]" />
-              Search the web first
+              Research the topic first
             </label>
+            {research && !apiKey && (
+              <div>
+                <span className="text-xs font-medium uppercase tracking-widest text-[var(--color-dim)]">
+                  Research source
+                </span>
+                <div className="mt-1 grid grid-cols-2 gap-2">
+                  {(["wikipedia", "web"] as const).map((src) => (
+                    <button
+                      key={src}
+                      onClick={() => setResearchSource(src)}
+                      className="btn btn-sm justify-center"
+                      style={
+                        researchSource === src
+                          ? { borderColor: "var(--color-brand)", color: "var(--color-brand)" }
+                          : undefined
+                      }
+                    >
+                      {src === "wikipedia" ? "Wikipedia" : "Web"}
+                    </button>
+                  ))}
+                </div>
+                <p className="mt-1 text-[11px] leading-relaxed text-[var(--color-dim)]">
+                  Keyless and free. <strong>Wikipedia</strong> uses article summaries; <strong>Web</strong> adds a
+                  deeper Wikipedia extract plus a DuckDuckGo cross-check, for more facts. With your own API key, the
+                  model searches the live web instead.
+                </p>
+              </div>
+            )}
             <ApiKeyField value={apiKey} onChange={setApiKey} />
 
             <label className="block">
@@ -452,6 +493,12 @@ export default function Page() {
         <button className="btn btn-sm" onClick={() => setSheet("style")}>Style</button>
       </header>
 
+      {deck.engine && deck.engineKind !== "template" && (
+        <p className="mx-4 mt-3 text-[11px] text-[var(--color-dim)]">
+          Written by <strong className="text-[var(--color-fg)]">{deck.engine}</strong>
+          {deck.sources.length > 0 ? " · sources in the caption" : ""}
+        </p>
+      )}
       {deck.offline && (
         <p
           className="mx-4 mt-3 rounded-lg px-3 py-2 text-xs"
@@ -462,7 +509,7 @@ export default function Page() {
           }
         >
           {deck.enriched
-            ? "Drafted from public sources (Wikipedia) — free, no key. Facts are real; tighten the wording, then add your angle."
+            ? `Drafted from public sources (${deck.researchSource === "web" ? "Web — Wikipedia + DuckDuckGo" : "Wikipedia"}) — free, no key. Facts are real; tighten the wording, then add your angle.`
             : "Draft skeleton — the layout is real, the words are placeholders. Tap Edit to replace them, or add an API key for AI-written copy."}
         </p>
       )}

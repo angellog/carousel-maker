@@ -9,6 +9,8 @@ export interface GenerateInput {
   slideCount: number;
   presetId: string;
   research: boolean;
+  /** Which keyless research source to use when the writer can't search itself. */
+  researchSource?: "wikipedia" | "web";
   /** Optional source material the user pasted (transcript, notes, article). */
   material?: string;
   /**
@@ -79,7 +81,18 @@ export function buildSystemPrompt(preset: Preset, input: GenerateInput): string 
   ].join("\n");
 }
 
-export function buildUserPrompt(input: GenerateInput): string {
+export interface UserPromptOptions {
+  /**
+   * Pre-gathered facts from a keyless researcher. Used for writers that cannot
+   * search the web themselves (open-source models): the facts are handed over
+   * as grounding, and the model is told to write from them and cite the sources
+   * rather than inventing anything.
+   */
+  facts?: string[];
+  sources?: { title: string; url: string }[];
+}
+
+export function buildUserPrompt(input: GenerateInput, opts: UserPromptOptions = {}): string {
   const lines = [`Topic: ${input.topic}`];
   if (input.audience) lines.push(`Audience: ${input.audience}`);
   if (input.tone) lines.push(`Tone: ${input.tone}`);
@@ -87,6 +100,22 @@ export function buildUserPrompt(input: GenerateInput): string {
   lines.push(`Slides: ${input.slideCount}`);
   if (input.material) {
     lines.push("", "Source material to draw from (prefer this over general knowledge):", "---", input.material.slice(0, 20000), "---");
+  }
+  if (opts.facts && opts.facts.length > 0) {
+    lines.push(
+      "",
+      "Researched facts (from public sources — treat these as the ground truth and build the deck around them; do not invent statistics beyond what appears here):",
+      ...opts.facts.slice(0, 40).map((f) => `- ${f}`),
+    );
+    if (opts.sources && opts.sources.length > 0) {
+      lines.push(
+        "",
+        "Cite these sources in the deck's `sources` field:",
+        ...opts.sources.map((s) => `- ${s.title} — ${s.url}`),
+      );
+    }
+    lines.push("", "Write the deck now. Do not claim to have searched; use only the facts above and your general knowledge for phrasing.");
+    return lines.join("\n");
   }
   if (input.research) {
     lines.push(

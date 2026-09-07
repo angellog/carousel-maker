@@ -61,13 +61,37 @@ How the key is handled:
 | --- | --- |
 | `npm run dev` | Dev server on :4321 |
 | `npm run build` | Production build |
-| `npm test` | Full suite (462 tests) |
+| `npm test` | Full suite (513 tests) |
 | `npm run lint` | `tsc --noEmit` |
 | `npm run samples` | Writes one PNG per template to `samples/` |
 
 There is also a design-QA page at `/gallery` — every template rendered from the
 same deck, so layout regressions are obvious. `/gallery?preset=keynote` shows
 one template's whole deck.
+
+---
+
+## Modes — the brain behind the deck
+
+The engine that writes a deck is two independent choices — **the Writer** (who
+turns a topic into copy) and **the Research source** (where the facts come
+from). Keeping them separate turns five apparent "modes" into one small grid.
+You don't pick a mode; you configure a ladder, and the app resolves the best
+available brain per request.
+
+| Mode | Brain | Facts | Who pays | Enable |
+|------|-------|-------|----------|--------|
+| **Keyless free tier** | built-in template writer | Wikipedia / Web (keyless) | nobody | nothing — the default |
+| **Bring-your-own-key** | Claude (user's key) | Claude's live web search | the user | paste a key in the app |
+| **Hosted (our key)** | Claude (server key) | Claude's live web search | us | `CAROUSEL_API_KEY`, rate-limited |
+| **Open-source brain** | any OpenAI-compatible model | Wikipedia / Web | us or nobody | `CAROUSEL_OSS_*` |
+| **Live internet** | any writer | Web (Wikipedia + DuckDuckGo) | depends | research on + Web source |
+
+Everything degrades safely: if a model errors or returns junk, the request falls
+back to a real, sourced keyless deck rather than an error screen. Hosting behind
+the server key is protected by a per-client + global rate limit so it can't be
+drained. The full design, the config, and how to add a new brain are in
+[`docs/PROVIDERS.md`](docs/PROVIDERS.md).
 
 ---
 
@@ -134,7 +158,14 @@ src/lib/
     schema.ts           Validation + normalisation of model output
     prompt.ts           System/user prompts and the submit_deck tool schema
     offline.ts          Deterministic writer used when no API key is set
+    research.ts         Keyless facts from Wikipedia's REST API
   content/errors.ts     Plain-language API failures; key sanitising + masking
+  providers/            The two-axis brain: writers × research sources
+    config.ts           resolveConfig(input, env) → which writer + research runs
+    generate.ts         Orchestrator: research → write → template fallback
+    ratelimit.ts        Spend protection for the modes where we pay
+    writers/            claude · openai (any OSS/hosted) · template
+    research/           wikipedia · web (Wikipedia + DuckDuckGo)
   export/index.ts       PNG, ZIP, native share sheet, caption.txt, project.json
 components/             Mobile shell: swipeable deck, bottom sheets, lazy thumbs
 ```
@@ -246,7 +277,7 @@ topic-carousel.zip
 
 ## Testing
 
-462 tests. The ones that matter:
+513 tests. The ones that matter:
 
 - **Every preset × every slide × every palette** renders without producing a
   single `NaN` coordinate — plus bare decks, 300-word headlines, one-character
@@ -269,9 +300,17 @@ topic-carousel.zip
 - **API failures**: the message a user sees for no credits, a rejected key, a
   rate limit, a missing model and a network drop — with unrecognised errors
   passed through rather than swallowed.
+- **Provider resolution + spend protection**: the right brain is chosen for every
+  key/env combination; the rate limiter allows up to each per-client and global
+  limit then blocks, isolates clients, refunds on rollback, and never touches
+  bring-your-own-key; the OSS adapter parses tool-calls and content-JSON alike
+  and falls back cleanly; the `web` researcher merges Wikipedia + DuckDuckGo and
+  survives either source failing; and a failed model still yields a sourced deck.
 
 ## Stack
 
 Next.js 15 · React 19 · TypeScript · Tailwind 4 · Zod · JSZip ·
-`@anthropic-ai/sdk` with server-side web search. No database, no image model,
-no canvas library — the renderer is about 900 lines of plain Canvas 2D.
+`@anthropic-ai/sdk` with server-side web search, plus any OpenAI-compatible
+endpoint (Groq, Together, OpenRouter, Ollama…) for an open-source brain, and
+keyless Wikipedia + DuckDuckGo research. No database, no image model, no canvas
+library — the renderer is about 900 lines of plain Canvas 2D.

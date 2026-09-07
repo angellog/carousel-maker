@@ -116,6 +116,12 @@ export interface Deck {
   offline?: boolean;
   /** True when the offline writer had real research to draw on (not placeholders). */
   enriched?: boolean;
+  /** Human label of the brain that wrote this deck ("Claude Sonnet 5", "Llama 3.3 (Groq)", "Public sources"). */
+  engine?: string;
+  /** Which kind of writer produced it, for UI logic. */
+  engineKind?: "claude" | "openai" | "template";
+  /** Which research source fed it, if any. */
+  researchSource?: "wikipedia" | "web";
 }
 
 /** Which optional Slide fields a preset actually renders. */

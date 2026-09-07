@@ -198,7 +198,13 @@ export function writeOfflineDeck(args: {
   const audience = args.audience?.trim() || "people trying to get better at this";
   const research = args.research;
   const facts = research?.facts ?? [];
-  const enriched = facts.length >= bodyCount; // enough real material to lead with
+  // Enrich as soon as we have a few real facts, not one per body slide. Fact
+  // yield varies run to run (a Wikipedia article can time out), and the old
+  // `>= bodyCount` cliff flipped data-rich topics to a full placeholder deck
+  // whenever a single article dropped. Leftover slots fall back to a topic-
+  // anchored frame title with no body, so a partially-covered deck still reads
+  // as intentional rather than reverting everything to scaffolding.
+  const enriched = facts.length >= Math.min(bodyCount, 3);
 
   const slides: Slide[] = [];
   slides.push({
@@ -223,7 +229,15 @@ export function writeOfflineDeck(args: {
       role: "body",
       kicker: enriched ? "Fact " + String(i + 1).padStart(2, "0") : f.kicker(topic, i),
       title: enriched && fact ? toPhrase(fact, 70) : f.title(topic, i),
-      body: enriched && facts[i + bodyCount] ? toPhrase(facts[i + bodyCount], 130) : f.body(topic, i),
+      // When enriched, the body carries a second real fact if we have one;
+      // otherwise leave it empty. A strong fact title standing alone reads as
+      // intentional, whereas the generic FRAMES body ("Name the one outcome
+      // that matters this month") clashes badly under a real researched claim.
+      body: enriched
+        ? facts[i + bodyCount]
+          ? toPhrase(facts[i + bodyCount], 130)
+          : undefined
+        : f.body(topic, i),
       ...fieldsFor(args.preset, i, topic, count),
     });
   }
