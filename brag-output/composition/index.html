@@ -66,29 +66,23 @@
         font-size: 30px; font-weight: 600; border: 1px solid rgba(110,231,183,0.3);
       }
 
-      /* ---- Scene 3: phone deck ---- */
-      .phone {
-        width: 360px; height: 760px; border-radius: 52px;
-        background: #05070a; border: 2px solid #262c35;
-        padding: 16px; box-shadow: 0 40px 120px rgba(0,0,0,0.6);
+      /* ---- Scene 3: real carousel (4:5, like an Instagram post) ---- */
+      .s3wrap { display: flex; flex-direction: column; align-items: center; gap: 26px; }
+      .card {
+        width: 520px; height: 650px; border-radius: 30px; overflow: hidden;
+        background: #08070a; border: 1px solid #262c35;
+        box-shadow: 0 50px 130px rgba(0,0,0,0.65);
       }
-      .screen { width: 100%; height: 100%; border-radius: 40px; overflow: hidden; background: #0b0d10; }
-      .deck { display: flex; width: 984px; height: 100%; }
-      .slide {
-        width: 328px; height: 100%; flex: 0 0 328px;
-        background: #f4f5f7; color: #0b0d10;
-        padding: 40px 32px; display: flex; flex-direction: column; gap: 18px;
-      }
-      .slide .kicker { font-size: 20px; font-weight: 700; letter-spacing: 0.14em; color: #2f6fed; }
-      .slide.cover .kicker { color: #2f6fed; }
-      .slide .stitle { font-size: 44px; font-weight: 800; line-height: 1.08; letter-spacing: -0.02em; }
-      .slide .snote { margin-top: auto; font-size: 18px; color: #434a55; }
+      .deck { display: flex; width: 1560px; height: 100%; }
+      .slideimg { width: 520px; height: 650px; flex: 0 0 520px; object-fit: cover; }
+      .dots { display: flex; gap: 12px; }
+      .dot3 { width: 12px; height: 12px; border-radius: 50%; background: #2a313b; }
 
       /* ---- Scene 4: the flex ---- */
       .big { font-size: 132px; font-weight: 800; letter-spacing: -0.035em; line-height: 1.02; }
       .sub { font-size: 44px; color: #8d97a6; font-weight: 500; }
       .thumbs { display: flex; gap: 20px; margin-top: 14px; }
-      .thumb { width: 96px; height: 120px; border-radius: 12px; border: 1px solid #262c35; }
+      .thumb { width: 116px; height: 145px; border-radius: 12px; border: 1px solid #262c35; object-fit: cover; }
 
       /* ---- Scene 5: download + wordmark ---- */
       .s5group { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 40px; }
@@ -136,24 +130,18 @@
       <!-- Scene 3 — swipe the finished deck (7–12) -->
       <section id="s3" class="clip" data-start="7" data-duration="5" data-track-index="0">
         <div class="stage" id="s3-stage">
-          <div class="phone" id="s3-phone">
-            <div class="screen">
+          <div class="s3wrap" id="s3-phone">
+            <div class="card">
               <div class="deck" id="s3-deck" data-layout-allow-overflow>
-                <div class="slide cover">
-                  <div class="kicker">READ THIS FIRST</div>
-                  <div class="stitle">6 things worth knowing about <span style="color:#2f6fed">James Webb Space Telescope</span></div>
-                </div>
-                <div class="slide">
-                  <div class="kicker">FACT 01</div>
-                  <div class="stitle">It is the largest telescope in space</div>
-                  <div class="snote">Source: James Webb Space Telescope</div>
-                </div>
-                <div class="slide">
-                  <div class="kicker">FACT 02</div>
-                  <div class="stitle">Its sunshield keeps it colder than deep space</div>
-                  <div class="snote">Source: Sunshield</div>
-                </div>
+                <img class="slideimg" src="assets/slides/slide-0.png" alt="Carousel cover slide" />
+                <img class="slideimg" src="assets/slides/slide-1.png" alt="Carousel fact slide 1" />
+                <img class="slideimg" src="assets/slides/slide-2.png" alt="Carousel fact slide 2" />
               </div>
+            </div>
+            <div class="dots">
+              <div class="dot3" id="s3-d0"></div>
+              <div class="dot3" id="s3-d1"></div>
+              <div class="dot3" id="s3-d2"></div>
             </div>
           </div>
         </div>
@@ -166,12 +154,12 @@
           <div class="big" id="s4-b"><span class="mint">Zero</span> image models.</div>
           <div class="sub" id="s4-sub">Every pixel is vectors, type, and math.</div>
           <div class="thumbs" id="s4-thumbs">
-            <div class="thumb" style="background:#14171c"></div>
-            <div class="thumb" style="background:#101826"></div>
-            <div class="thumb" style="background:#0f1a15"></div>
-            <div class="thumb" style="background:#1a1420"></div>
-            <div class="thumb" style="background:#101a1a"></div>
-            <div class="thumb" style="background:#161616"></div>
+            <img class="thumb" src="assets/thumbs/t1.png" alt="template" />
+            <img class="thumb" src="assets/thumbs/t2.png" alt="template" />
+            <img class="thumb" src="assets/thumbs/t3.png" alt="template" />
+            <img class="thumb" src="assets/thumbs/t4.png" alt="template" />
+            <img class="thumb" src="assets/thumbs/t5.png" alt="template" />
+            <img class="thumb" src="assets/thumbs/t6.png" alt="template" />
           </div>
         </div>
       </section>
@@ -221,12 +209,18 @@
       tl.fromTo("#s2-pill", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" }, 5.55);
       tl.to("#s2-stage", { opacity: 0, duration: 0.25, ease: "power1.in" }, 6.78);
 
-      /* Scene 3 — swipe the deck. Slide width is 328px. */
-      const SW = 328;
-      tl.fromTo("#s3-phone", { opacity: 0, scale: 0.96, y: 24 }, { opacity: 1, scale: 1, y: 0, duration: 0.5, ease: "power3.out" }, 7.05);
+      /* Scene 3 — swipe a real carousel. Slide width is 520px. */
+      const SW = 520;
+      const DOT_ON = "#6ee7b7", DOT_OFF = "#2a313b";
       gsap.set("#s3-deck", { x: 0 });
+      gsap.set("#s3-d0", { backgroundColor: DOT_ON });
+      tl.fromTo("#s3-phone", { opacity: 0, scale: 0.96, y: 24 }, { opacity: 1, scale: 1, y: 0, duration: 0.5, ease: "power3.out" }, 7.05);
       tl.to("#s3-deck", { x: -SW, duration: 0.5, ease: "power3.inOut" }, 8.7);   // → FACT 01
+      tl.set("#s3-d0", { backgroundColor: DOT_OFF }, 8.9);
+      tl.set("#s3-d1", { backgroundColor: DOT_ON }, 8.9);
       tl.to("#s3-deck", { x: -SW * 2, duration: 0.5, ease: "power3.inOut" }, 10.3); // → FACT 02
+      tl.set("#s3-d1", { backgroundColor: DOT_OFF }, 10.5);
+      tl.set("#s3-d2", { backgroundColor: DOT_ON }, 10.5);
       tl.to("#s3-phone", { opacity: 0, duration: 0.25, ease: "power1.in" }, 11.75);
 
       /* Scene 4 — the flex. */
