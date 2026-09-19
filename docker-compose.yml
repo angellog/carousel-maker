@@ -1,0 +1,38 @@
+# Carousel Maker — one-command VPS deploy.
+#
+#   1. Point your domain's DNS A record at this VPS.
+#   2. Put your domain in the Caddyfile and your key(s) in .env.production
+#      (see .env.production.example; never commit it).
+#   3. docker compose up -d --build
+#
+# Caddy terminates TLS (automatic HTTPS via Let's Encrypt) and reverse-proxies
+# to the app on the private compose network. The app itself publishes no host
+# port — it is only reachable through Caddy.
+
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    expose:
+      - "4321"          # internal only; not published to the host
+    # No `ports:` — traffic reaches the app solely via Caddy.
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"   # HTTP/3
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:

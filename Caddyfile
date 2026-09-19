@@ -1,0 +1,20 @@
+# Replace `carousel.example.com` with your real domain (its DNS A/AAAA record
+# must already point at this VPS). Caddy will obtain and renew HTTPS certificates
+# automatically. To get staging/test certs or set an ACME email, see Caddy docs.
+
+carousel.example.com {
+	encode zstd gzip
+
+	reverse_proxy app:4321 {
+		# Stream Server-Sent Events immediately instead of buffering them — the
+		# /api/generate route streams progress + the final deck as SSE.
+		flush_interval -1
+		# A deck with web search can take a few minutes; don't cut the stream.
+		transport http {
+			read_timeout 360s
+			write_timeout 360s
+		}
+		# Caddy sets X-Forwarded-For automatically, which the app's rate limiter
+		# keys on to identify the real client (not the proxy).
+	}
+}
