@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en" data-resolution="landscape">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>Carousel Maker — brag</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        width: 1920px; height: 1080px; overflow: hidden;
+        background: #0b0d10;
+      }
+      #root {
+        position: relative; width: 100%; height: 100%; overflow: hidden;
+        background: #0b0d10;
+        color: #e9edf3;
+        font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+        letter-spacing: -0.01em;
+      }
+      .clip { position: absolute; inset: 0; }
+      .stage {
+        position: absolute; inset: 0;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        gap: 40px;
+      }
+      .mint { color: #6ee7b7; }
+      .blue { color: #7dd3fc; }
+      .dim { color: #8d97a6; }
+
+      /* ---- Scene 1: compose field ---- */
+      .field {
+        width: 980px; height: 132px; border-radius: 22px;
+        background: #14171c; border: 1px solid #262c35;
+        display: flex; align-items: center; padding: 0 34px;
+        font-size: 40px; color: #e9edf3;
+      }
+      #s1-ph { position: absolute; color: #8d97a6; }
+      .typed { display: inline-flex; align-items: center; }
+      #s1-reveal { overflow: hidden; white-space: nowrap; }
+      .caret { width: 3px; height: 46px; background: #6ee7b7; margin-left: 4px; display: inline-block; }
+      .hook { font-size: 118px; font-weight: 800; letter-spacing: -0.03em; }
+
+      /* ---- shared CTA ---- */
+      .cta {
+        display: inline-flex; align-items: center; justify-content: center;
+        height: 92px; padding: 0 56px; border-radius: 18px;
+        background: #6ee7b7; color: #08120d;
+        font-size: 40px; font-weight: 700; border: none;
+      }
+
+      /* ---- Scene 2: research log ---- */
+      .log { display: flex; flex-direction: column; gap: 22px; width: 760px; }
+      .logrow {
+        display: flex; align-items: center; gap: 20px;
+        height: 78px; padding: 0 30px; border-radius: 16px;
+        background: #14171c; border: 1px solid #262c35;
+        font-size: 34px; color: #e9edf3;
+      }
+      .dot { width: 16px; height: 16px; border-radius: 50%; background: #7dd3fc; flex: 0 0 auto; }
+      .pill {
+        display: inline-flex; align-items: center; gap: 14px;
+        height: 64px; padding: 0 30px; border-radius: 999px;
+        background: rgba(110,231,183,0.12); color: #6ee7b7;
+        font-size: 30px; font-weight: 600; border: 1px solid rgba(110,231,183,0.3);
+      }
+
+      /* ---- Scene 3: phone deck ---- */
+      .phone {
+        width: 360px; height: 760px; border-radius: 52px;
+        background: #05070a; border: 2px solid #262c35;
+        padding: 16px; box-shadow: 0 40px 120px rgba(0,0,0,0.6);
+      }
+      .screen { width: 100%; height: 100%; border-radius: 40px; overflow: hidden; background: #0b0d10; }
+      .deck { display: flex; width: 984px; height: 100%; }
+      .slide {
+        width: 328px; height: 100%; flex: 0 0 328px;
+        background: #f4f5f7; color: #0b0d10;
+        padding: 40px 32px; display: flex; flex-direction: column; gap: 18px;
+      }
+      .slide .kicker { font-size: 20px; font-weight: 700; letter-spacing: 0.14em; color: #2f6fed; }
+      .slide.cover .kicker { color: #2f6fed; }
+      .slide .stitle { font-size: 44px; font-weight: 800; line-height: 1.08; letter-spacing: -0.02em; }
+      .slide .snote { margin-top: auto; font-size: 18px; color: #434a55; }
+
+      /* ---- Scene 4: the flex ---- */
+      .big { font-size: 132px; font-weight: 800; letter-spacing: -0.035em; line-height: 1.02; }
+      .sub { font-size: 44px; color: #8d97a6; font-weight: 500; }
+      .thumbs { display: flex; gap: 20px; margin-top: 14px; }
+      .thumb { width: 96px; height: 120px; border-radius: 12px; border: 1px solid #262c35; }
+
+      /* ---- Scene 5: download + wordmark ---- */
+      .s5group { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 40px; }
+      .tiles { display: flex; gap: 16px; }
+      .tile {
+        width: 92px; height: 116px; border-radius: 12px;
+        background: #14171c; border: 1px solid #262c35;
+        display: flex; align-items: flex-end; justify-content: center;
+        padding-bottom: 10px; font-size: 18px; color: #8d97a6;
+      }
+      .wm-name { font-size: 128px; font-weight: 800; letter-spacing: -0.04em; color: #6ee7b7; }
+      .wm-tag { font-size: 42px; color: #e9edf3; margin-top: 10px; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="20" data-width="1920" data-height="1080">
+
+      <!-- Scene 1 — type the topic (0–3) -->
+      <section id="s1" class="clip" data-start="0" data-duration="3" data-track-index="0">
+        <div class="stage" id="s1-stage">
+          <div class="field">
+            <span id="s1-ph">What's the carousel about?</span>
+            <span class="typed">
+              <span id="s1-reveal" data-layout-allow-overflow><span id="s1-text">James Webb Space Telescope</span></span>
+              <span class="caret" id="s1-caret"></span>
+            </span>
+          </div>
+          <div class="hook" id="s1-hook">One topic in.</div>
+        </div>
+      </section>
+
+      <!-- Scene 2 — generate, keyless (3–7) -->
+      <section id="s2" class="clip" data-start="3" data-duration="4" data-track-index="0">
+        <div class="stage" id="s2-stage">
+          <button class="cta" id="s2-cta">Make carousel</button>
+          <div class="log">
+            <div class="logrow" id="s2-r0"><span class="dot"></span>James Webb Space Telescope</div>
+            <div class="logrow" id="s2-r1"><span class="dot"></span>Sunshield</div>
+            <div class="logrow" id="s2-r2"><span class="dot"></span>Webb's First Deep Field</div>
+          </div>
+          <div class="pill" id="s2-pill"><span class="dot" style="background:#6ee7b7"></span>No API key needed</div>
+        </div>
+      </section>
+
+      <!-- Scene 3 — swipe the finished deck (7–12) -->
+      <section id="s3" class="clip" data-start="7" data-duration="5" data-track-index="0">
+        <div class="stage" id="s3-stage">
+          <div class="phone" id="s3-phone">
+            <div class="screen">
+              <div class="deck" id="s3-deck" data-layout-allow-overflow>
+                <div class="slide cover">
+                  <div class="kicker">READ THIS FIRST</div>
+                  <div class="stitle">6 things worth knowing about <span style="color:#2f6fed">James Webb Space Telescope</span></div>
+                </div>
+                <div class="slide">
+                  <div class="kicker">FACT 01</div>
+                  <div class="stitle">It is the largest telescope in space</div>
+                  <div class="snote">Source: James Webb Space Telescope</div>
+                </div>
+                <div class="slide">
+                  <div class="kicker">FACT 02</div>
+                  <div class="stitle">Its sunshield keeps it colder than deep space</div>
+                  <div class="snote">Source: Sunshield</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Scene 4 — the flex (12–16) -->
+      <section id="s4" class="clip" data-start="12" data-duration="4" data-track-index="0">
+        <div class="stage" id="s4-stage">
+          <div class="big" id="s4-a">45 templates.</div>
+          <div class="big" id="s4-b"><span class="mint">Zero</span> image models.</div>
+          <div class="sub" id="s4-sub">Every pixel is vectors, type, and math.</div>
+          <div class="thumbs" id="s4-thumbs">
+            <div class="thumb" style="background:#14171c"></div>
+            <div class="thumb" style="background:#101826"></div>
+            <div class="thumb" style="background:#0f1a15"></div>
+            <div class="thumb" style="background:#1a1420"></div>
+            <div class="thumb" style="background:#101a1a"></div>
+            <div class="thumb" style="background:#161616"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Scene 5 — download & wordmark (16–20) -->
+      <section id="s5" class="clip" data-start="16" data-duration="4" data-track-index="0">
+        <div class="s5group" id="s5-dlgroup" data-layout-allow-overlap>
+          <button class="cta" id="s5-dl">Download all</button>
+          <div class="tiles" id="s5-tiles">
+            <div class="tile">01.png</div>
+            <div class="tile">02.png</div>
+            <div class="tile">03.png</div>
+            <div class="tile">04.png</div>
+            <div class="tile">05.png</div>
+            <div class="tile">06.png</div>
+          </div>
+        </div>
+        <div class="s5group" id="s5-wm" data-layout-allow-overlap>
+          <div class="wm-name">Carousel Maker</div>
+          <div class="wm-tag">A topic in, a finished Instagram carousel out.</div>
+        </div>
+      </section>
+
+      <audio id="music" data-start="0" data-duration="20" data-volume="0.55" data-fade-in="0.4" data-fade-out="1.6" data-track-index="1" src="assets/music/happy-beats-business-moves-vol-1-by-ende-dot-app.mp3"></audio>
+    </div>
+
+    <script>
+      const tl = gsap.timeline({ paused: true });
+
+      /* Scene 1 — measure the topic width, then reveal it like typing. */
+      const revealW = document.getElementById("s1-text").offsetWidth + 10;
+      gsap.set("#s1-reveal", { width: 0 });
+      gsap.set("#s1-caret", { x: 0 });
+      tl.to("#s1-ph", { opacity: 0, duration: 0.2, ease: "power1.out" }, 0.15);
+      tl.to("#s1-reveal", { width: revealW, duration: 1.0, ease: "steps(26)" }, 0.2);
+      tl.fromTo("#s1-hook", { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 1.35);
+      tl.to("#s1-stage", { opacity: 0, duration: 0.25, ease: "power1.in" }, 2.75);
+
+      /* Scene 2 — generate, keyless. */
+      tl.fromTo("#s2-stage", { opacity: 0 }, { opacity: 1, duration: 0.3 }, 3.0);
+      tl.fromTo("#s2-cta", { scale: 0.96, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.35, ease: "back.out(2)" }, 3.1);
+      tl.to("#s2-cta", { scale: 0.94, duration: 0.09, yoyo: true, repeat: 1, ease: "power2.inOut" }, 3.5); // simulated tap
+      // beat-grid: source rows on consecutive beats — r0 4.02s, r1 4.53s, r2 5.03s — then hold the set
+      tl.fromTo("#s2-r0", { opacity: 0, x: -28 }, { opacity: 1, x: 0, duration: 0.4, ease: "power3.out" }, 4.02);
+      tl.fromTo("#s2-r1", { opacity: 0, x: -28 }, { opacity: 1, x: 0, duration: 0.4, ease: "power3.out" }, 4.53);
+      tl.fromTo("#s2-r2", { opacity: 0, x: -28 }, { opacity: 1, x: 0, duration: 0.4, ease: "power3.out" }, 5.03);
+      tl.fromTo("#s2-pill", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" }, 5.55);
+      tl.to("#s2-stage", { opacity: 0, duration: 0.25, ease: "power1.in" }, 6.78);
+
+      /* Scene 3 — swipe the deck. Slide width is 328px. */
+      const SW = 328;
+      tl.fromTo("#s3-phone", { opacity: 0, scale: 0.96, y: 24 }, { opacity: 1, scale: 1, y: 0, duration: 0.5, ease: "power3.out" }, 7.05);
+      gsap.set("#s3-deck", { x: 0 });
+      tl.to("#s3-deck", { x: -SW, duration: 0.5, ease: "power3.inOut" }, 8.7);   // → FACT 01
+      tl.to("#s3-deck", { x: -SW * 2, duration: 0.5, ease: "power3.inOut" }, 10.3); // → FACT 02
+      tl.to("#s3-phone", { opacity: 0, duration: 0.25, ease: "power1.in" }, 11.75);
+
+      /* Scene 4 — the flex. */
+      tl.fromTo("#s4-a", { opacity: 0, y: 44 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 12.2);
+      tl.fromTo("#s4-b", { opacity: 0, y: 44 }, { opacity: 1, y: 0, duration: 0.45, ease: "power3.out" }, 13.15);
+      tl.fromTo("#s4-sub", { opacity: 0 }, { opacity: 1, duration: 0.4 }, 13.95);
+      tl.fromTo("#s4-thumbs .thumb",
+        { opacity: 0, y: 24, scale: 0.9 },
+        { opacity: 1, y: 0, scale: 1, duration: 0.35, ease: "back.out(1.7)", stagger: 0.06 }, 14.25);
+      tl.to("#s4-stage", { opacity: 0, duration: 0.25, ease: "power1.in" }, 15.78);
+
+      /* Scene 5 — download → wordmark. beat-locked: 16.02s (strong cue). */
+      gsap.set("#s5-wm", { opacity: 0 });
+      tl.fromTo("#s5-dlgroup", { opacity: 0 }, { opacity: 1, duration: 0.25 }, 16.0);
+      tl.to("#s5-dl", { scale: 0.94, duration: 0.09, yoyo: true, repeat: 1, ease: "power2.inOut" }, 16.02); // beat-locked: 16.02s
+      tl.fromTo("#s5-tiles .tile",
+        { opacity: 0, y: -20 },
+        { opacity: 1, y: 0, duration: 0.34, ease: "power2.out", stagger: 0.08 }, 16.2);
+      tl.to("#s5-dlgroup", { opacity: 0, duration: 0.3, ease: "power1.in" }, 17.5); // fully out by 17.8
+      tl.fromTo("#s5-wm", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 17.9);
+
+      window.__timelines["main"] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>
