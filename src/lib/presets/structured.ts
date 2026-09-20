@@ -201,21 +201,7 @@ export const numberlist: Preset = {
   render(c) {
     const cb = contentBox(c);
     const nodes: Node[] = [];
-    nodes.push(...P.ruledPage(c, { paper: c.pal.bg, rule: withAlpha(c.pal.line, 0.7), ruleStep: 50, margin: false }));
-
-    // Handwritten page tab.
-    nodes.push(
-      fixedBlock(c, `Page ${c.index + 1}`, {
-        x: cb.x,
-        y: cb.y - 34,
-        w: 240,
-        size: 28,
-        font: c.fonts.hand,
-        weight: 700,
-        color: c.pal.accent2,
-        marks: {},
-      }).node,
-    );
+    nodes.push(...P.ruledPage(c, { paper: c.pal.bg, rule: withAlpha(c.pal.line, 0.3), ruleStep: 50, margin: false }));
 
     // Bordered section title bar.
     let y = cb.y + 6;
@@ -250,9 +236,9 @@ export const numberlist: Preset = {
     );
     y += barH + 26;
 
-    // Illustration column on the right.
-    const colW = 132;
-    const listW = cb.w - colW - 26;
+    // The list runs full width — no decorative icon column.
+    const colW = 0;
+    const listW = cb.w - colW;
     const items = (c.slide.bullets ?? []).slice(0, 10);
     const footH = c.slide.note ? 96 : 56;
     const avail = c.h - c.pad - footH - y;
@@ -305,20 +291,6 @@ export const numberlist: Preset = {
         }).node,
       );
     });
-
-    // Stacked illustrations down the right edge.
-    const iconCount = Math.max(3, Math.min(5, Math.ceil(items.length / 2)));
-    for (let i = 0; i < iconCount; i++) {
-      const seed = items[i * 2] ?? `${c.slide.title}-${i}`;
-      const ix = cb.x + cb.w - colW + 18;
-      const iy = y + 10 + (avail / iconCount) * i + 6;
-      const tile = P.iconTile(c, iconFor(seed), ix, iy, 92, {
-        fill: withAlpha(i % 2 ? c.pal.accent2 : c.pal.accent, 0.14),
-        color: i % 2 ? c.pal.accent2 : c.pal.accent,
-        radius: 22,
-      });
-      nodes.push(...tile.map((n) => ({ ...n, rotate: (i % 2 ? 1 : -1) * 0.06, origin: [ix + 46, iy + 46] as [number, number] })));
-    }
 
     if (c.slide.note) {
       nodes.push(

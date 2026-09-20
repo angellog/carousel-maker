@@ -146,7 +146,7 @@ export const colorpop: Preset = {
   pad: 78,
   render(c) {
     const nodes: Node[] = [];
-    nodes.push(...P.ruledPage(c, { paper: c.pal.bg, rule: withAlpha(c.pal.line, 0.45), ruleStep: 54, spiral: true, margin: false }));
+    nodes.push(...P.ruledPage(c, { paper: c.pal.bg, rule: withAlpha(c.pal.line, 0.35), ruleStep: 54, margin: false }));
     const left = c.pad + 76;
     const cb = { x: left, y: c.pad, w: c.w - left - c.pad, h: c.h - c.pad * 2 };
 
@@ -155,7 +155,9 @@ export const colorpop: Preset = {
     }
 
     // Colour-cycled headline: one hue per word.
-    const palette = [c.pal.accent, c.pal.accent2, mix(c.pal.accent, "#7c3aed", 0.6), mix(c.pal.accent2, "#f59e0b", 0.5), c.pal.fg];
+    // Disciplined "colour pop": the palette's own two accents plus ink, not a
+    // random rainbow. One coherent set, ink-anchored.
+    const palette = [c.pal.accent, c.pal.fg, c.pal.accent2];
     const words = c.slide.title.split(/\s+/).filter(Boolean);
     const marked = words.map((w, i) => `{{${i % palette.length}}}${w}`).join(" ");
     // Render word by word so each can take its own colour.
@@ -219,19 +221,6 @@ export const colorpop: Preset = {
       nodes.push(b.node);
       y += b.height + 20;
     }
-
-    // Doodle scatter around the type, avoiding the headline band.
-    const seeds = [c.deck.topic, c.slide.title, c.slide.body ?? "idea", c.slide.note ?? "time", c.deck.angle, "star"];
-    seeds.forEach((seed, i) => {
-      const angle = (i / seeds.length) * Math.PI * 2 + 0.5;
-      const rx = cb.w * 0.44;
-      const ry = cb.h * 0.36;
-      const dx = c.w / 2 + Math.cos(angle) * rx;
-      const dy = cb.y + cb.h / 2 + Math.sin(angle) * ry;
-      const g = P.icon(iconFor(seed), dx - 30, dy - 30, 60, palette[i % palette.length], { width: 3.5, opacity: 0.75 });
-      if (g) nodes.push({ ...g, rotate: (c.rand() - 0.5) * 0.5, origin: [dx, dy] });
-    });
-    nodes.push(...P.sparkleField(c, withAlpha(c.pal.accent2, 0.6), 5, { min: 10, max: 20 }));
 
     if (c.slide.note) {
       const ch = D.chip(c, c.slide.note, {
@@ -319,26 +308,8 @@ export const essay: Preset = {
       y += b.height + 30;
     }
 
-    // Monoline drawing composed from the icon set, bottom-right.
-    const figS = Math.min(300, c.h - c.pad - 70 - y);
-    if (figS > 120) {
-      const fx = cb.x + cb.w - figS - 10;
-      const fy = c.h - c.pad - figS - 20;
-      const g = P.icon(iconFor(c.slide.title + (c.slide.body ?? "")), fx, fy, figS, withAlpha(c.pal.fg, 0.55), {
-        width: Math.max(2, figS * 0.018),
-      });
-      if (g) nodes.push(g);
-      // A few structural lines to make it read as a scene rather than an icon.
-      nodes.push({
-        kind: "line",
-        x1: fx - 30,
-        y1: fy + figS + 10,
-        x2: fx + figS + 10,
-        y2: fy + figS + 10,
-        stroke: withAlpha(c.pal.fg, 0.4),
-        lineWidth: 2,
-      });
-    }
+    // Essay is a manifesto slide — the words carry it. No decorative figure;
+    // negative space is the design.
     if (c.slide.note) {
       nodes.push(
         fixedBlock(c, c.slide.note, {
