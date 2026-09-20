@@ -19,16 +19,12 @@ export type PlanId = "free" | "pro";
 export type Feature =
   /** Upload a screenshot / paste a link → matched look (pure canvas math). */
   | "inspiration"
-  /** Live web research on our hosted key — no bring-your-own-key needed. */
+  /** The deeper keyless web-research tier by default (Wikipedia + DuckDuckGo). */
   | "hostedResearch"
   /** Save a reusable brand kit: palette, handle, default voice. */
   | "brandKit"
-  /** Cloud project library: save, reopen, sync decks. */
-  | "projectLibrary"
   /** No daily generation cap. */
   | "unlimited"
-  /** Extra export ratios beyond 4:5 (1:1 square, 9:16 story). */
-  | "extraFormats"
   /** Drop the small "made with Carousel Maker" line from the caption. */
   | "noAttribution";
 
@@ -52,9 +48,7 @@ const PRO_FEATURES: Feature[] = [
   "inspiration",
   "hostedResearch",
   "brandKit",
-  "projectLibrary",
   "unlimited",
-  "extraFormats",
   "noAttribution",
 ];
 
@@ -85,10 +79,8 @@ export const PLANS: Record<PlanId, PlanDef> = {
     perks: [
       "Unlimited carousels",
       "Inspiration: match any look you love",
-      "Live web research, no key needed",
+      "Deeper web research, no key needed",
       "Brand Kit: your palette, handle & voice saved",
-      "Project library: save, reopen, sync",
-      "Square & story exports",
       "No attribution line",
     ],
   },
@@ -134,15 +126,11 @@ export function upsellFor(feature: Feature): string {
     case "inspiration":
       return "Match any carousel look you love — Pro reads its palette and layout and matches it.";
     case "hostedResearch":
-      return "Get live web research without bringing your own API key.";
+      return "Get the deeper web-research tier by default, without bringing your own API key.";
     case "brandKit":
       return "Save your palette, handle and voice so every deck is on-brand in one tap.";
-    case "projectLibrary":
-      return "Save decks to your library and reopen them on any device.";
     case "unlimited":
       return "You've used today's free carousels. Go unlimited with Pro.";
-    case "extraFormats":
-      return "Export square and story sizes, not just 4:5.";
     case "noAttribution":
       return "Remove the attribution line from your caption.";
   }

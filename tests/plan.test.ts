@@ -21,7 +21,7 @@ describe("plans & entitlements", () => {
 
   it("pro unlocks the magic and removes the cap", () => {
     expect(dailyQuota("pro")).toBe(Infinity);
-    for (const f of ["inspiration", "hostedResearch", "brandKit", "projectLibrary", "unlimited", "extraFormats", "noAttribution"] as const) {
+    for (const f of ["inspiration", "hostedResearch", "brandKit", "unlimited", "noAttribution"] as const) {
       expect(can("pro", f)).toBe(true);
     }
   });
@@ -51,7 +51,7 @@ describe("plans & entitlements", () => {
   });
 
   it("every feature has upsell copy", () => {
-    for (const f of ["inspiration", "hostedResearch", "brandKit", "projectLibrary", "unlimited", "extraFormats", "noAttribution"] as const) {
+    for (const f of ["inspiration", "hostedResearch", "brandKit", "unlimited", "noAttribution"] as const) {
       expect(upsellFor(f).length).toBeGreaterThan(10);
     }
   });
