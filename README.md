@@ -12,6 +12,23 @@ and 3D letter is produced from paths, gradients and procedural noise on a canvas
 
 ---
 
+## What it does
+
+- **Make it great** — the [Art Director](src/lib/director) reads your topic and
+  picks the template, palette, slide count, tone and voice, then writes the deck.
+- **Five writer voices** — straight, mentor, contrarian, analyst, hype. The copy
+  has a point of view, on the free tier too. ([voice](src/lib/content/voice.ts))
+- **Bring your inspiration** — upload a screenshot; pure canvas math reads its
+  palette and layout and matches the closest look, no image model. ([inspiration](src/lib/inspiration))
+- **Honest research** — keyless (Wikipedia/Web) or your own key; never invents a
+  statistic. See [PROVIDERS.md](docs/PROVIDERS.md).
+- **Freemium** — genuinely useful and unwatermarked for free; Pro removes the cap
+  and unlocks Inspiration + Brand Kit. See [PRODUCT.md](docs/PRODUCT.md).
+
+**Docs:** [PRODUCT.md](docs/PRODUCT.md) · [DESIGN.md](docs/DESIGN.md) ·
+[CREATORS.md](docs/CREATORS.md) · [PROVIDERS.md](docs/PROVIDERS.md) ·
+[preset-research.md](docs/preset-research.md)
+
 ## Quick start
 
 ```bash
