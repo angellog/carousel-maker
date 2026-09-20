@@ -24,22 +24,35 @@ export const viewport: Viewport = {
   // The app is a fixed single column; zooming is still allowed for a11y.
   maximumScale: 5,
   viewportFit: "cover",
-  themeColor: "#0b0d10",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f7f8f8" },
+    { media: "(prefers-color-scheme: dark)", color: "#0f1417" },
+  ],
 };
 
 export const metadata: Metadata = {
-  title: "Carousel Maker",
+  title: "Carousel Maker — topic in, carousel out",
   description:
-    "Turn a topic into a finished, downloadable Instagram carousel. 45 vector templates, no image generation.",
+    "Turn a topic into a finished, ready-to-post Instagram carousel. 12 winning templates, an Art Director, and honest research — with zero image-generation models.",
   appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "Carousel" },
 };
+
+/**
+ * Applies the saved theme before first paint so there's no light/dark flash.
+ * Falls back silently to the OS preference when storage is unavailable.
+ */
+const THEME_BOOT = `try{var t=localStorage.getItem('cm-theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);}catch(e){}`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       className={`${sans.variable} ${serif.variable} ${mono.variable} ${display.variable} ${hand.variable} ${condensed.variable} ${geo.variable}`}
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT }} />
+      </head>
       <body>{children}</body>
     </html>
   );
