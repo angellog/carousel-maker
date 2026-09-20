@@ -53,7 +53,7 @@ describe("resolveConfig — writer precedence", () => {
   it("labels the OSS engine from the model and host", () => {
     const c = resolveConfig(input(), OSS);
     expect(c.writer.label).toMatch(/llama-3\.3-70b-versatile/);
-    expect(c.writer.label).toMatch(/groq\.com/);
+    expect(c.writer.label).toMatch(/Groq/);
   });
 });
 

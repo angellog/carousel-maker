@@ -789,6 +789,18 @@ export function scene(c: Ctx, bg: Paint, nodes: Node[]): Scene {
   return { w: c.w, h: c.h, bg, nodes };
 }
 
+/**
+ * A composed cover: kicker + big title + subtitle, centred in the frame, with
+ * the footer. Data/list templates use this for `role === "cover"` so the hook
+ * slide never renders empty body-furniture (an empty rank grid, chart, or step
+ * list) that leaves a giant void. The look stays on-palette, so it reads as the
+ * same deck as the body slides.
+ */
+export function coverScene(c: Ctx, over: Partial<ShellStyle> = {}): Scene {
+  const s = defaultShell(c, { justify: "center", titleMax: 120, titleMin: 46, titleLH: 1.05, titleLS: -2, bodySize: 30, ...over });
+  return scene(c, c.pal.bg, [...composeStack(c, s, bodyBox(c)), ...D.footer(c)]);
+}
+
 export const ALL_FIELDS: SlideField[] = [
   "kicker",
   "body",

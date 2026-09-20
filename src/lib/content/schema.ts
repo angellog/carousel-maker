@@ -219,6 +219,14 @@ export function normalizeDeck(
       .slice(0, 12),
     sources: raw.sources ?? [],
   };
+
+  // A cover with only a headline leaves templates with a void; give it the
+  // deck's angle as a supporting line when the writer didn't supply one.
+  const cover = deck.slides[0];
+  if (cover && cover.role === "cover" && !cover.body && deck.angle && plain(deck.angle) !== plain(cover.title)) {
+    cover.body = deck.angle;
+  }
+
   return { deck, issues };
 }
 

@@ -7,7 +7,7 @@ import * as P from "../render/props";
 import type { Node } from "../render/scene";
 import { mix, withAlpha } from "../theme";
 import type { SlidePanel, SlideRanked } from "../types";
-import { bodyBox, defaultShell, headStack, scene } from "./_shared";
+import { bodyBox, coverScene, defaultShell, headStack, scene } from "./_shared";
 import type { Preset } from "./types";
 
 /** Fall back to bullets when the writer did not supply structured data. */
@@ -32,10 +32,11 @@ export const statlist: Preset = {
   slideRange: [7, 9],
   pad: 76,
   render(c) {
+    if (c.slide.role === "cover") return coverScene(c);
     const cb = contentBox(c);
     const nodes: Node[] = [];
     const s = defaultShell(c, {
-      titleMax: c.slide.role === "cover" ? 96 : 66,
+      titleMax: 66,
       titleMin: 34,
       titleLH: 1.05,
       titleLS: -2,

@@ -7,6 +7,7 @@ import type { Node } from "../render/scene";
 import { withAlpha } from "../theme";
 import {
   bodyPart,
+  coverScene,
   defaultShell,
   featurePart,
   layoutParts,
@@ -31,6 +32,7 @@ export const cheatsheet: Preset = {
   slideRange: [8, 10],
   pad: 78,
   render(c) {
+    if (c.slide.role === "cover") return coverScene(c);
     const cb = contentBox(c);
     const nodes: Node[] = [];
 
@@ -66,7 +68,7 @@ export const cheatsheet: Preset = {
       x: cb.x,
       y,
       w: cb.w,
-      size: c.slide.role === "cover" ? 88 : 62,
+      size: 62,
       font: c.fonts.sans,
       weight: 800,
       color: c.pal.fg,
@@ -199,6 +201,7 @@ export const numberlist: Preset = {
   slideRange: [8, 10],
   pad: 74,
   render(c) {
+    if (c.slide.role === "cover") return coverScene(c);
     const cb = contentBox(c);
     const nodes: Node[] = [];
     nodes.push(...P.ruledPage(c, { paper: c.pal.bg, rule: withAlpha(c.pal.line, 0.3), ruleStep: 50, margin: false }));
@@ -346,6 +349,7 @@ export const timeline: Preset = {
   slideRange: [7, 9],
   pad: 92,
   render(c) {
+    if (c.slide.role === "cover") return coverScene(c);
     const cb = contentBox(c);
     const nodes: Node[] = [];
     nodes.push(...D.dotGrid(c, 60, 2, withAlpha(c.pal.fg, 0.07)));
@@ -353,7 +357,7 @@ export const timeline: Preset = {
     const s = defaultShell(c, {
       align: "left",
       justify: "start",
-      titleMax: c.slide.role === "cover" ? 100 : 70,
+      titleMax: 70,
       titleMin: 36,
       titleLH: 1.06,
       titleLS: -2,

@@ -10,6 +10,7 @@ import {
   bulletsPart,
   chatPart,
   comparePart,
+  coverScene,
   defaultShell,
   featurePart,
   kickerPart,
@@ -36,6 +37,7 @@ export const compare: Preset = {
   slideRange: [7, 9],
   pad: 84,
   render(c) {
+    if (c.slide.role === "cover") return coverScene(c);
     const cb = contentBox(c);
     const nodes: Node[] = [];
     const cmp = c.slide.compare;
@@ -43,7 +45,7 @@ export const compare: Preset = {
     let y = cb.y;
     const s = defaultShell(c, {
       align: "left",
-      titleMax: c.slide.role === "cover" ? 96 : 66,
+      titleMax: 66,
       titleMin: 34,
       titleLH: 1.06,
       titleLS: -1.8,
@@ -190,6 +192,7 @@ export const datacard: Preset = {
   slideRange: [7, 9],
   pad: 92,
   render(c) {
+    if (c.slide.role === "cover") return coverScene(c);
     const cb = contentBox(c);
     const nodes: Node[] = [];
     nodes.push(...D.gridLines(c, 90, withAlpha(c.pal.fg, 0.05)));
@@ -197,7 +200,7 @@ export const datacard: Preset = {
     const s = defaultShell(c, {
       align: "left",
       justify: "start",
-      titleMax: c.slide.role === "cover" ? 92 : 58,
+      titleMax: 58,
       titleMin: 32,
       titleLH: 1.08,
       titleLS: -1.6,

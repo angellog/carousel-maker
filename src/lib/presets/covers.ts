@@ -7,7 +7,7 @@ import * as P from "../render/props";
 import type { Node } from "../render/scene";
 import { mix, withAlpha } from "../theme";
 import type { SlidePanel } from "../types";
-import { defaultShell, headStack, scene } from "./_shared";
+import { coverScene, defaultShell, headStack, scene } from "./_shared";
 import type { Preset } from "./types";
 
 export const contents: Preset = {
@@ -23,6 +23,7 @@ export const contents: Preset = {
   slideRange: [5, 8],
   pad: 82,
   render(c) {
+    if (c.slide.role === "cover") return coverScene(c);
     const cb = contentBox(c);
     const nodes: Node[] = [];
     nodes.push(D.grain(c, 0.04, "#000000"));

@@ -48,7 +48,8 @@ const DEFAULT_MODEL = "claude-sonnet-5";
 
 function ossLabel(env: Env): string {
   if (env.CAROUSEL_OSS_LABEL) return env.CAROUSEL_OSS_LABEL;
-  const model = env.CAROUSEL_OSS_MODEL ?? "model";
+  // Strip any provider prefix ("openai/gpt-oss-120b" → "gpt-oss-120b").
+  const model = (env.CAROUSEL_OSS_MODEL ?? "model").split("/").pop() as string;
   // Name the host from the base URL so the UI can say where the brain lives.
   let host = "";
   try {
@@ -56,7 +57,8 @@ function ossLabel(env: Env): string {
   } catch {
     /* leave host blank on a malformed URL */
   }
-  return host ? `${model} (${host})` : model;
+  const hostName = host ? host.split(".")[0].replace(/^\w/, (ch) => ch.toUpperCase()) : "";
+  return hostName ? `${model} · ${hostName}` : model;
 }
 
 export function pickResearchSource(input: GenerateInput, env: Env): ResearchSource {
