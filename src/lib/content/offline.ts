@@ -2,6 +2,24 @@ import type { Deck, Slide, SlideField } from "../types";
 import type { Preset } from "../presets/types";
 import type { ResearchResult } from "./research";
 import { numberWordsToDigits } from "./schema";
+import { getVoice, type VoiceId } from "./voice";
+
+/**
+ * Deterministic per-voice snippets for the keyless draft. The full personality
+ * lives in the model prompt (`./voice`), but the free tier still deserves a
+ * register: the cover kicker and the closing ask shift with the chosen voice.
+ */
+const VOICE_FLAVOR: Record<VoiceId, { coverKicker: string; ctaTitle: string; ctaSave: string }> = {
+  straight: { coverKicker: "Read this first", ctaTitle: "Pick **one** thing and do it this week", ctaSave: "Save this so you can come back to it." },
+  mentor: { coverKicker: "Start here", ctaTitle: "Try the **smallest** version today", ctaSave: "Save this for the week you need it." },
+  contrarian: { coverKicker: "Unpopular take", ctaTitle: "Drop **one** habit from this list this week", ctaSave: "Save it and prove me wrong." },
+  analyst: { coverKicker: "The short version", ctaTitle: "Track **one** number from this for a month", ctaSave: "Save this and check it in 30 days." },
+  hype: { coverKicker: "Swipe for it", ctaTitle: "Steal **one** of these and run", ctaSave: "Save it before it scrolls away." },
+};
+
+function flavor(voiceId: string | undefined) {
+  return VOICE_FLAVOR[getVoice(voiceId).id];
+}
 
 /**
  * Deterministic writer used when no ANTHROPIC_API_KEY is configured.
@@ -258,8 +276,11 @@ export function writeOfflineDeck(args: {
   slideCount: number;
   /** Real facts from keyless research; upgrades placeholders to sourced copy. */
   research?: ResearchResult;
+  /** Writer persona; shifts the keyless draft's register (see ./voice). */
+  voiceId?: string;
 }): Deck {
   const topic = args.topic.trim() || "your topic";
+  const voice = flavor(args.voiceId);
   const count = Math.max(4, Math.min(12, args.slideCount));
   const bodyCount = count - 2;
   const handle = (args.handle ?? "").trim();
@@ -278,7 +299,7 @@ export function writeOfflineDeck(args: {
   slides.push({
     id: "s1",
     role: "cover",
-    kicker: "Read this first",
+    kicker: voice.coverKicker,
     title: enriched
       ? `${bodyCount} things worth knowing about **${titleCase(shortTopic(topic, 4))}**`
       : `${bodyCount} things about **${titleCase(shortTopic(topic, 4))}** worth knowing`,
@@ -320,8 +341,8 @@ export function writeOfflineDeck(args: {
     id: `s${count}`,
     role: "cta",
     kicker: "Your turn",
-    title: "Pick **one** thing here and do it this week",
-    body: handle ? `Follow ${handle} for more on ${shortTopic(topic, 4)}.` : "Save this so you can come back to it.",
+    title: voice.ctaTitle,
+    body: handle ? `Follow ${handle} for more on ${shortTopic(topic, 4)}.` : voice.ctaSave,
     note: "Save · Share · Try it",
   });
 

@@ -19,6 +19,7 @@ export const templateWriter: Writer = {
       preset: ctx.preset,
       slideCount: ctx.slideCount,
       research: ctx.research,
+      voiceId: ctx.input.voiceId,
     });
     deck.engineKind = "template";
     deck.engine = deck.enriched ? "Public sources" : "Draft skeleton";

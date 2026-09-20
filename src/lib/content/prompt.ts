@@ -1,11 +1,14 @@
 import type { Preset } from "../presets/types";
 import type { SlideField } from "../types";
+import { voiceSystemPrompt } from "./voice";
 
 export interface GenerateInput {
   topic: string;
   audience?: string;
   handle?: string;
   tone?: string;
+  /** Writer persona id (see ./voice). Sets the register of the copy. */
+  voiceId?: string;
   slideCount: number;
   presetId: string;
   research: boolean;
@@ -61,6 +64,8 @@ export function buildSystemPrompt(preset: Preset, input: GenerateInput): string 
     "- `==word==` applies a marker highlight.",
     "- `__word__` underlines. `~~word~~` strikes through.",
     "Mark at most **one** span per slide — the single word that carries the idea. One accent, not a scatter.",
+    "",
+    voiceSystemPrompt(input.voiceId),
     "",
     `## The chosen template: ${preset.name}`,
     preset.blurb,

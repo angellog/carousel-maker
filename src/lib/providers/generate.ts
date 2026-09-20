@@ -94,5 +94,5 @@ export async function generateDeck(args: GenerateArgs): Promise<GenerateOutput> 
 
 /** Extremely defensive: only reached if the template writer itself throws. */
 function templateFallbackDeck(input: GenerateInput, preset: ReturnType<typeof getPreset>, slideCount: number): Deck {
-  return writeOfflineDeck({ topic: input.topic, handle: input.handle, preset, slideCount });
+  return writeOfflineDeck({ topic: input.topic, handle: input.handle, preset, slideCount, voiceId: input.voiceId });
 }
