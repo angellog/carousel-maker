@@ -2,17 +2,19 @@ import { describe, expect, it } from "vitest";
 import {
   PLANS,
   can,
-  dailyQuota,
+  quotaLimit,
+  quotaPeriod,
   quotaState,
   getPlan,
   upsellFor,
-  FREE_DAILY_QUOTA,
+  FREE_WEEKLY_QUOTA,
 } from "@/lib/plan";
 
 describe("plans & entitlements", () => {
   it("free is genuinely usable: templates/voices/art-director, capped runs, no watermark", () => {
     // Free grants none of the paid features, but the quota is real and finite.
-    expect(dailyQuota("free")).toBe(FREE_DAILY_QUOTA);
+    expect(quotaLimit("free")).toBe(FREE_WEEKLY_QUOTA);
+    expect(quotaPeriod("free")).toBe("week");
     expect(can("free", "inspiration")).toBe(false);
     expect(can("free", "unlimited")).toBe(false);
     // Perks copy promises no watermark (quality is never the paywall).
@@ -20,7 +22,7 @@ describe("plans & entitlements", () => {
   });
 
   it("pro unlocks the magic and removes the cap", () => {
-    expect(dailyQuota("pro")).toBe(Infinity);
+    expect(quotaLimit("pro")).toBe(Infinity);
     for (const f of ["inspiration", "hostedResearch", "brandKit", "unlimited", "noAttribution"] as const) {
       expect(can("pro", f)).toBe(true);
     }
@@ -34,10 +36,10 @@ describe("plans & entitlements", () => {
 
   it("quota math blocks free at the cap and never blocks pro", () => {
     const fresh = quotaState("free", 0);
-    expect(fresh.remaining).toBe(FREE_DAILY_QUOTA);
+    expect(fresh.remaining).toBe(FREE_WEEKLY_QUOTA);
     expect(fresh.blocked).toBe(false);
 
-    const spent = quotaState("free", FREE_DAILY_QUOTA);
+    const spent = quotaState("free", FREE_WEEKLY_QUOTA);
     expect(spent.remaining).toBe(0);
     expect(spent.blocked).toBe(true);
 

@@ -21,6 +21,8 @@
 export interface RateLimitConfig {
   perMinute: number;
   perDay: number;
+  /** Per-client ceiling over a rolling 7 days. Infinity = no weekly cap. */
+  perWeek: number;
   /** Hard ceiling on total paid generations across all clients per day. */
   dailyBudget: number;
   disabled: boolean;
@@ -36,6 +38,9 @@ export function rateLimitConfigFromEnv(
   return {
     perMinute: num(env.CAROUSEL_RATE_PER_MIN, 5),
     perDay: num(env.CAROUSEL_RATE_PER_DAY, 50),
+    // Unset → no weekly cap, so existing deployments are unaffected. Set
+    // CAROUSEL_RATE_PER_WEEK=2 for a hard per-IP free ceiling of 2 per week.
+    perWeek: num(env.CAROUSEL_RATE_PER_WEEK, Infinity),
     dailyBudget: num(env.CAROUSEL_DAILY_BUDGET, 500),
     disabled: env.CAROUSEL_RATE_DISABLED === "1" || env.CAROUSEL_RATE_DISABLED === "true",
   };
@@ -48,7 +53,7 @@ export interface RateDecision {
   /** A short, user-facing explanation when blocked. */
   message?: string;
   /** Which limit tripped, for logging/telemetry. */
-  limit?: "minute" | "day" | "budget";
+  limit?: "minute" | "day" | "week" | "budget";
 }
 
 /** A monotonic-ish clock, injectable so tests don't sleep. */
@@ -64,13 +69,14 @@ interface Hit {
  * paid generations counted so far in the current UTC day.
  */
 export interface RateLimitStore {
-  record(clientId: string, now: number): { lastMinute: number; lastDay: number; globalDay: number };
+  record(clientId: string, now: number): { lastMinute: number; lastDay: number; lastWeek: number; globalDay: number };
   /** Undo the most recent hit for a client — used when the request never ran. */
   rollback(clientId: string, now: number): void;
 }
 
 const MINUTE = 60_000;
 const DAY = 86_400_000;
+const WEEK = 7 * DAY;
 
 /** Default in-memory store. Prunes lazily so memory stays bounded. */
 export class MemoryRateLimitStore implements RateLimitStore {
@@ -79,9 +85,11 @@ export class MemoryRateLimitStore implements RateLimitStore {
 
   record(clientId: string, now: number) {
     const arr = this.hits.get(clientId) ?? [];
-    // Drop anything older than a day for this client.
+    // Retain a rolling week per client so the weekly window can be counted;
+    // the global budget only needs a day.
+    const weekAgo = now - WEEK;
     const dayAgo = now - DAY;
-    const pruned = arr.filter((h) => h.ts > dayAgo);
+    const pruned = arr.filter((h) => h.ts > weekAgo);
     pruned.push({ ts: now });
     this.hits.set(clientId, pruned);
 
@@ -91,7 +99,8 @@ export class MemoryRateLimitStore implements RateLimitStore {
     const minuteAgo = now - MINUTE;
     return {
       lastMinute: pruned.filter((h) => h.ts > minuteAgo).length,
-      lastDay: pruned.length,
+      lastDay: pruned.filter((h) => h.ts > dayAgo).length,
+      lastWeek: pruned.length,
       globalDay: this.global.length,
     };
   }
@@ -152,6 +161,15 @@ export function checkRateLimit(
       limit: "minute",
       retryAfter: 60,
       message: "You're going a little fast — wait a minute and try again, or add your own API key to skip the limit.",
+      rollback: noop,
+    };
+  }
+  if (counts.lastWeek > cfg.perWeek) {
+    rollback();
+    return {
+      ok: false,
+      limit: "week",
+      message: "You've used your free carousels for this week. Upgrade to Pro for unlimited, or add your own API key under Options → API key to keep going now.",
       rollback: noop,
     };
   }

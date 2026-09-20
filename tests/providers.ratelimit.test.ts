@@ -7,7 +7,7 @@ import {
   type RateLimitConfig,
 } from "@/lib/providers/ratelimit";
 
-const cfg: RateLimitConfig = { perMinute: 3, perDay: 5, dailyBudget: 8, disabled: false };
+const cfg: RateLimitConfig = { perMinute: 3, perDay: 5, perWeek: Infinity, dailyBudget: 8, disabled: false };
 
 beforeEach(() => resetRateLimit());
 
@@ -61,6 +61,31 @@ describe("checkRateLimit — per-client windows", () => {
   });
 });
 
+describe("checkRateLimit — weekly free ceiling", () => {
+  it("enforces a per-week cap that outlives the day window", () => {
+    // Free tier: 2 per week. Space hits days apart so minute/day never trip.
+    const week: RateLimitConfig = { perMinute: 100, perDay: 100, perWeek: 2, dailyBudget: 100, disabled: false };
+    const t = { v: 1_000_000_000 };
+    const clock = clockAt(t);
+    expect(checkRateLimit("w", week, clock).ok).toBe(true);
+    t.v += 2 * 86_400_000; // 2 days later
+    expect(checkRateLimit("w", week, clock).ok).toBe(true);
+    t.v += 2 * 86_400_000; // 2 more days (still within the same 7-day window)
+    const blocked = checkRateLimit("w", week, clock);
+    expect(blocked.ok).toBe(false);
+    expect(blocked.limit).toBe("week");
+    // After the rolling week clears the first hits, a slot frees again.
+    t.v += 4 * 86_400_000; // now the first hit is > 7 days old
+    expect(checkRateLimit("w", week, clock).ok).toBe(true);
+  });
+
+  it("is disabled by default (Infinity), so no weekly cap unless configured", () => {
+    const noWeek: RateLimitConfig = { perMinute: 100, perDay: 100, perWeek: Infinity, dailyBudget: 100, disabled: false };
+    const clock = clockAt({ v: 1000 });
+    for (let i = 0; i < 20; i++) expect(checkRateLimit("nw", noWeek, clock).ok).toBe(true);
+  });
+});
+
 describe("checkRateLimit — global budget", () => {
   it("caps total spend across all clients", () => {
     const t = { v: 2_000_000 };
@@ -100,7 +125,12 @@ describe("rateLimitConfigFromEnv", () => {
     const c = rateLimitConfigFromEnv({ CAROUSEL_RATE_PER_MIN: "9", CAROUSEL_RATE_DISABLED: "1" });
     expect(c.perMinute).toBe(9);
     expect(c.perDay).toBe(50); // default
+    expect(c.perWeek).toBe(Infinity); // no weekly cap unless set
     expect(c.disabled).toBe(true);
+  });
+
+  it("reads a weekly cap when set", () => {
+    expect(rateLimitConfigFromEnv({ CAROUSEL_RATE_PER_WEEK: "2" }).perWeek).toBe(2);
   });
 });
 

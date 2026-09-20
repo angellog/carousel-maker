@@ -42,6 +42,6 @@ the wording and add your own angle before you post.
 ## Free vs Pro
 
 Free gives you all 12 templates, all 5 voices, the Art Director, keyless
-research, and 3 full-resolution, unwatermarked carousels a day. Pro removes the
+research, and 2 full-resolution, unwatermarked carousels a week. Pro removes the
 daily cap and adds Inspiration (match any look), a saved Brand Kit, deeper
 research without a key, and drops the caption credit line. See [PRODUCT.md](PRODUCT.md).

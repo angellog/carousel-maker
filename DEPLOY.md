@@ -37,12 +37,17 @@ and `output: "standalone"`.
    ```
    Do **not** add an Anthropic key yet — without accounts, anyone could spend it.
    Claude turns on in Milestone 2 once Pro is gated by login.
-4. **Set the budget guardrails.** Tune to taste:
+4. **Set the budget guardrails.** Tune to taste (this example gives a hard
+   free ceiling of **2 carousels per IP per week**, matching the app's free tier):
    ```
-   CAROUSEL_RATE_PER_MIN=5
-   CAROUSEL_RATE_PER_DAY=30
+   CAROUSEL_RATE_PER_MIN=15
+   CAROUSEL_RATE_PER_WEEK=2
    CAROUSEL_DAILY_BUDGET=300
    ```
+   Note: a per-IP weekly cap is a blunt instrument — people behind one office or
+   mobile-carrier IP share the count. The in-app free quota (2/week, per device)
+   is the softer product limit; a true per-user weekly cap needs accounts
+   (Milestone 2). Loosen `CAROUSEL_RATE_PER_WEEK` if shared-IP users get blocked.
 5. **Add the bot shield (Cloudflare Turnstile, free).**
    [dash.cloudflare.com](https://dash.cloudflare.com) → *Turnstile* → add a widget
    for your Railway domain. Then set:

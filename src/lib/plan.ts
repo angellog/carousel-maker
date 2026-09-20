@@ -28,20 +28,24 @@ export type Feature =
   /** Drop the small "made with Carousel Maker" line from the caption. */
   | "noAttribution";
 
+export type QuotaPeriod = "day" | "week";
+
 export interface PlanDef {
   id: PlanId;
   name: string;
   /** Display price; the number is informational, billing lives elsewhere. */
   price: string;
   tagline: string;
-  /** Generations allowed per day. Infinity for unlimited. */
-  dailyQuota: number;
+  /** Generations allowed per `quotaPeriod`. Infinity for unlimited. */
+  quota: number;
+  /** The window the quota resets on. */
+  quotaPeriod: QuotaPeriod;
   features: ReadonlySet<Feature>;
   /** Short bullets shown on the upgrade surface. */
   perks: string[];
 }
 
-export const FREE_DAILY_QUOTA = 3;
+export const FREE_WEEKLY_QUOTA = 2;
 
 const FREE_FEATURES: Feature[] = [];
 const PRO_FEATURES: Feature[] = [
@@ -58,14 +62,15 @@ export const PLANS: Record<PlanId, PlanDef> = {
     name: "Free",
     price: "$0",
     tagline: "Everything you need to post a great carousel.",
-    dailyQuota: FREE_DAILY_QUOTA,
+    quota: FREE_WEEKLY_QUOTA,
+    quotaPeriod: "week",
     features: new Set(FREE_FEATURES),
     perks: [
       "All 12 winning templates",
       "All 5 writer voices",
       "Art Director auto-pick",
       "Keyless research, or bring your own key",
-      `${FREE_DAILY_QUOTA} carousels a day`,
+      `${FREE_WEEKLY_QUOTA} carousels a week`,
       "Full-resolution 4:5 export, no watermark",
     ],
   },
@@ -74,7 +79,8 @@ export const PLANS: Record<PlanId, PlanDef> = {
     name: "Pro",
     price: "$8/mo",
     tagline: "For creators who post on a schedule.",
-    dailyQuota: Infinity,
+    quota: Infinity,
+    quotaPeriod: "week",
     features: new Set(PRO_FEATURES),
     perks: [
       "Unlimited carousels",
@@ -97,9 +103,14 @@ export function can(plan: string | undefined, feature: Feature): boolean {
   return getPlan(plan).features.has(feature);
 }
 
-/** Daily generation allowance for a plan. */
-export function dailyQuota(plan: string | undefined): number {
-  return getPlan(plan).dailyQuota;
+/** Generation allowance for a plan, per its quota period. */
+export function quotaLimit(plan: string | undefined): number {
+  return getPlan(plan).quota;
+}
+
+/** The window a plan's quota resets on ("day" | "week"). */
+export function quotaPeriod(plan: string | undefined): QuotaPeriod {
+  return getPlan(plan).quotaPeriod;
 }
 
 export interface QuotaState {
@@ -111,11 +122,11 @@ export interface QuotaState {
   unlimited: boolean;
 }
 
-/** Pure quota math; the UI supplies today's count (from local storage or server). */
-export function quotaState(plan: string | undefined, usedToday: number): QuotaState {
-  const limit = dailyQuota(plan);
+/** Pure quota math; the UI supplies the count used in the current period. */
+export function quotaState(plan: string | undefined, usedInPeriod: number): QuotaState {
+  const limit = quotaLimit(plan);
   const unlimited = !Number.isFinite(limit);
-  const used = Math.max(0, Math.floor(usedToday));
+  const used = Math.max(0, Math.floor(usedInPeriod));
   const remaining = unlimited ? Infinity : Math.max(0, limit - used);
   return { used, limit, remaining, blocked: !unlimited && remaining <= 0, unlimited };
 }
@@ -130,7 +141,7 @@ export function upsellFor(feature: Feature): string {
     case "brandKit":
       return "Save your palette, handle and voice so every deck is on-brand in one tap.";
     case "unlimited":
-      return "You've used today's free carousels. Go unlimited with Pro.";
+      return "You've used this week's free carousels. Go unlimited with Pro.";
     case "noAttribution":
       return "Remove the attribution line from your caption.";
   }

@@ -75,14 +75,16 @@ output quality.** It removes friction and unlocks the magic.
 | Voices | All 5 | All 5 |
 | Art Director | ✓ | ✓ |
 | Research | Keyless (Wikipedia/Web) or your key | Deeper web tier by default, no key |
-| Daily carousels | 3 | Unlimited |
+| Free carousels | 2 / week | Unlimited |
 | Export | Full-res 4:5, no watermark | Full-res 4:5, no watermark |
 | Inspiration | — | ✓ |
 | Brand Kit | — | ✓ |
 | Caption attribution line | Present | Removed |
 
-The daily quota is enforced client-side today (`cm-usage`, reset by date). Real
-enforcement belongs on the server once accounts exist (below).
+The free quota (2 / week) is enforced client-side today (`cm-usage`, keyed by ISO
+week) as the soft product limit; the server's `CAROUSEL_RATE_PER_WEEK` gives a
+hard per-IP backstop. A true per-user weekly cap belongs on the server once
+accounts exist (below).
 
 ## Wiring payments (the one honest gap)
 

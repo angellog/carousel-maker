@@ -45,8 +45,14 @@ const FEATURED = ["statlist", "datacard", "numberlist", "compare", "timeline", "
 
 /* ------------------------- local persistence ------------------------- */
 
-function today(): string {
-  return new Date().toISOString().slice(0, 10);
+/** ISO-week key (e.g. "2026-W38") — the free quota resets weekly. */
+function periodKey(d = new Date()): string {
+  const dt = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const day = dt.getUTCDay() || 7;
+  dt.setUTCDate(dt.getUTCDate() + 4 - day);
+  const yearStart = new Date(Date.UTC(dt.getUTCFullYear(), 0, 1));
+  const week = Math.ceil(((dt.getTime() - yearStart.getTime()) / 86_400_000 + 1) / 7);
+  return `${dt.getUTCFullYear()}-W${String(week).padStart(2, "0")}`;
 }
 function loadPlan(): PlanId {
   try {
@@ -57,8 +63,8 @@ function loadPlan(): PlanId {
 }
 function loadUsage(): number {
   try {
-    const raw = JSON.parse(localStorage.getItem("cm-usage") || "{}") as { date?: string; n?: number };
-    return raw.date === today() ? raw.n ?? 0 : 0;
+    const raw = JSON.parse(localStorage.getItem("cm-usage") || "{}") as { key?: string; n?: number };
+    return raw.key === periodKey() ? raw.n ?? 0 : 0;
   } catch {
     return 0;
   }
@@ -170,7 +176,7 @@ export default function Page() {
     setUsage((n) => {
       const next = n + 1;
       try {
-        localStorage.setItem("cm-usage", JSON.stringify({ date: today(), n: next }));
+        localStorage.setItem("cm-usage", JSON.stringify({ key: periodKey(), n: next }));
       } catch {
         /* ignore */
       }
@@ -541,7 +547,7 @@ export default function Page() {
 
           {!isPro && (
             <p className="px-4 pt-3 text-[12px] text-[var(--color-dim)]">
-              {quota.remaining} of {quota.limit} free carousels left today.
+              {quota.remaining} of {quota.limit} free carousels left this week.
             </p>
           )}
 
