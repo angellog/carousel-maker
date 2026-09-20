@@ -1,50 +1,169 @@
 @import "tailwindcss";
 
-@theme {
-  --color-ink: #0b0d10;
-  --color-panel: #14171c;
-  --color-panel-2: #1b1f26;
-  --color-edge: #262c35;
-  --color-text: #e9edf3;
-  --color-dim: #8d97a6;
-  --color-brand: #6ee7b7;
-  --color-brand-2: #7dd3fc;
-}
+/*
+ * Carousel Maker design system.
+ *
+ * Tokens are semantic and theme-aware. The bare :root is the light palette;
+ * dark is applied both by OS preference (guarded so an explicit light choice
+ * wins) and by an explicit data-theme="dark" on <html>. Colours are OKLCH so
+ * the ramps stay perceptually even. Motion curves follow the Emil Kowalski
+ * playbook: strong ease-out, nothing appears from nothing, sub-300ms UI.
+ *
+ * Token names (--color-ink/panel/panel-2/edge/text/dim/brand/brand-2) are kept
+ * stable so every component references one vocabulary.
+ */
 
 :root {
-  color-scheme: dark;
-  /* Honour the notch / home indicator on phones. */
+  /* Neutrals — a cool off-white, chosen (chroma toward the brand hue), not paper. */
+  --color-ink: oklch(0.985 0.004 200);      /* app background */
+  --color-panel: oklch(1 0 0);              /* raised surface / cards */
+  --color-panel-2: oklch(0.965 0.005 210);  /* insets, fields */
+  --color-edge: oklch(0.9 0.008 220);       /* hairlines, borders */
+  --color-text: oklch(0.22 0.02 235);       /* primary ink */
+  --color-dim: oklch(0.5 0.02 235);         /* secondary text (>=4.5:1 on ink) */
+
+  /* Brand — the established mint, refined; steel-sky as the second accent. */
+  --color-brand: oklch(0.72 0.16 165);
+  --color-brand-strong: oklch(0.62 0.16 165);
+  --color-brand-ink: oklch(0.99 0.01 165);  /* text on a brand fill */
+  --color-brand-2: oklch(0.62 0.13 235);
+  --color-brand-wash: oklch(0.72 0.16 165 / 0.12);
+
+  /* Semantic — separate from the accent. */
+  --color-ok: oklch(0.62 0.15 155);
+  --color-warn: oklch(0.72 0.15 75);
+  --color-danger: oklch(0.6 0.2 25);
+
+  /* Radii, shadow, spacing rhythm. */
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 18px;
+  --r-xl: 24px;
+  --r-full: 999px;
+  --shadow-1: 0 1px 2px oklch(0.2 0.03 235 / 0.06), 0 2px 8px oklch(0.2 0.03 235 / 0.06);
+  --shadow-2: 0 8px 24px oklch(0.2 0.03 235 / 0.1), 0 2px 8px oklch(0.2 0.03 235 / 0.08);
+  --shadow-pop: 0 24px 60px oklch(0.2 0.03 235 / 0.18);
+
+  /* Motion — Emil curves. Never ease-in for UI. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --t-press: 120ms;
+  --t-fast: 160ms;
+  --t-mid: 220ms;
+  --t-sheet: 300ms;
+
+  /* Z-index scale — semantic, never magic numbers. */
+  --z-dock: 20;
+  --z-sticky: 30;
+  --z-scrim: 40;
+  --z-sheet: 41;
+  --z-toast: 60;
+
+  color-scheme: light;
   --safe-t: env(safe-area-inset-top, 0px);
   --safe-b: env(safe-area-inset-bottom, 0px);
   --tap: 48px;
 }
+
+/* Dark palette — by OS preference unless the user forced light. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-ink: oklch(0.17 0.012 235);
+    --color-panel: oklch(0.21 0.014 235);
+    --color-panel-2: oklch(0.26 0.016 235);
+    --color-edge: oklch(0.32 0.018 235);
+    --color-text: oklch(0.96 0.005 220);
+    --color-dim: oklch(0.72 0.014 225);
+
+    --color-brand: oklch(0.86 0.15 165);
+    --color-brand-strong: oklch(0.9 0.15 165);
+    --color-brand-ink: oklch(0.26 0.06 165);
+    --color-brand-2: oklch(0.8 0.11 230);
+    --color-brand-wash: oklch(0.86 0.15 165 / 0.14);
+
+    --color-ok: oklch(0.8 0.16 155);
+    --color-warn: oklch(0.82 0.15 80);
+    --color-danger: oklch(0.72 0.17 25);
+
+    --shadow-1: 0 1px 2px oklch(0 0 0 / 0.4), 0 2px 8px oklch(0 0 0 / 0.35);
+    --shadow-2: 0 10px 30px oklch(0 0 0 / 0.5), 0 2px 8px oklch(0 0 0 / 0.4);
+    --shadow-pop: 0 30px 70px oklch(0 0 0 / 0.6);
+
+    color-scheme: dark;
+  }
+}
+
+/* Dark palette — explicit toggle, wins in both directions. */
+:root[data-theme="dark"] {
+  --color-ink: oklch(0.17 0.012 235);
+  --color-panel: oklch(0.21 0.014 235);
+  --color-panel-2: oklch(0.26 0.016 235);
+  --color-edge: oklch(0.32 0.018 235);
+  --color-text: oklch(0.96 0.005 220);
+  --color-dim: oklch(0.72 0.014 225);
+
+  --color-brand: oklch(0.86 0.15 165);
+  --color-brand-strong: oklch(0.9 0.15 165);
+  --color-brand-ink: oklch(0.26 0.06 165);
+  --color-brand-2: oklch(0.8 0.11 230);
+  --color-brand-wash: oklch(0.86 0.15 165 / 0.14);
+
+  --color-ok: oklch(0.8 0.16 155);
+  --color-warn: oklch(0.82 0.15 80);
+  --color-danger: oklch(0.72 0.17 25);
+
+  --shadow-1: 0 1px 2px oklch(0 0 0 / 0.4), 0 2px 8px oklch(0 0 0 / 0.35);
+  --shadow-2: 0 10px 30px oklch(0 0 0 / 0.5), 0 2px 8px oklch(0 0 0 / 0.4);
+  --shadow-pop: 0 30px 70px oklch(0 0 0 / 0.6);
+
+  color-scheme: dark;
+}
+
+/* Expose the key tokens to Tailwind's utility layer. */
+@theme inline {
+  --color-ink: var(--color-ink);
+  --color-panel: var(--color-panel);
+  --color-panel-2: var(--color-panel-2);
+  --color-edge: var(--color-edge);
+  --color-text: var(--color-text);
+  --color-dim: var(--color-dim);
+  --color-brand: var(--color-brand);
+  --color-brand-2: var(--color-brand-2);
+}
+
+/* ------------------------------- base -------------------------------- */
 
 html,
 body {
   height: 100%;
 }
 
-body {
-  background: var(--color-ink);
-  color: var(--color-text);
-  font-family: var(--font-sans), system-ui, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  /* Stop iOS rubber-banding the whole app behind the sheets. */
-  overscroll-behavior-y: none;
-}
-
-/* Never let a mis-sized element cause a horizontal scrollbar on a phone. */
 html {
   overflow-x: hidden;
 }
 
-/* The preview canvases must never blur when CSS-scaled down. */
-canvas.slide {
-  display: block;
-  width: 100%;
-  height: auto;
-  border-radius: 10px;
-  background: #000;
+body {
+  background: var(--color-ink);
+  color: var(--color-text);
+  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overscroll-behavior-y: none;
+}
+
+::selection {
+  background: var(--color-brand-wash);
+}
+
+/* One visible focus style, everywhere, for keyboard users only. */
+:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+:focus:not(:focus-visible) {
+  outline: none;
 }
 
 input,
@@ -59,18 +178,56 @@ textarea {
   resize: vertical;
 }
 
-.field {
+canvas.slide {
+  display: block;
   width: 100%;
-  background: var(--color-panel-2);
-  border: 1px solid var(--color-edge);
-  border-radius: 10px;
-  padding: 10px 12px;
-  outline: none;
-  transition: border-color 0.12s ease;
+  height: auto;
+  border-radius: var(--r-md);
+  background: #000;
 }
 
+/* ------------------------------ typography --------------------------- */
+
+.display {
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1.02;
+  text-wrap: balance;
+}
+.eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-dim);
+}
+.prose-tight {
+  text-wrap: pretty;
+  line-height: 1.5;
+}
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------ controls ----------------------------- */
+
+.field {
+  width: 100%;
+  min-height: var(--tap);
+  background: var(--color-panel-2);
+  border: 1px solid var(--color-edge);
+  border-radius: var(--r-md);
+  padding: 12px 14px;
+  font-size: 16px; /* keeps iOS from zooming on focus */
+  outline: none;
+  transition: border-color var(--t-fast) var(--ease-out), box-shadow var(--t-fast) var(--ease-out);
+}
+.field::placeholder {
+  color: var(--color-dim);
+}
 .field:focus {
   border-color: var(--color-brand);
+  box-shadow: 0 0 0 3px var(--color-brand-wash);
 }
 
 .btn {
@@ -78,22 +235,30 @@ textarea {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  border-radius: 10px;
-  padding: 10px 16px;
+  min-height: var(--tap);
+  padding-inline: 18px;
+  border-radius: var(--r-md);
   border: 1px solid var(--color-edge);
-  background: var(--color-panel-2);
+  background: var(--color-panel);
+  color: var(--color-text);
+  font-size: 16px;
+  font-weight: 550;
   cursor: pointer;
-  transition:
-    background 0.12s ease,
-    border-color 0.12s ease,
-    opacity 0.12s ease;
   white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition:
+    background var(--t-fast) var(--ease-out),
+    border-color var(--t-fast) var(--ease-out),
+    transform var(--t-press) var(--ease-out),
+    opacity var(--t-fast) var(--ease-out);
 }
-
 .btn:hover:not(:disabled) {
   border-color: var(--color-dim);
 }
-
+.btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
 .btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
@@ -102,41 +267,135 @@ textarea {
 .btn-primary {
   background: var(--color-brand);
   border-color: var(--color-brand);
-  color: #05261b;
+  color: var(--color-brand-ink);
   font-weight: 650;
 }
-
 .btn-primary:hover:not(:disabled) {
-  background: #8af0c6;
+  background: var(--color-brand-strong);
+  border-color: var(--color-brand-strong);
 }
+
+.btn-ghost {
+  background: transparent;
+  border-color: transparent;
+}
+.btn-ghost:hover:not(:disabled) {
+  background: var(--color-panel-2);
+  border-color: transparent;
+}
+
+.btn-sm {
+  min-height: 38px;
+  padding: 6px 14px;
+  font-size: 13px;
+  border-radius: var(--r-full);
+}
+
+/* Segmented control. */
+.seg {
+  display: inline-flex;
+  padding: 3px;
+  gap: 3px;
+  background: var(--color-panel-2);
+  border: 1px solid var(--color-edge);
+  border-radius: var(--r-full);
+}
+.seg > button {
+  min-height: 34px;
+  padding: 0 14px;
+  border-radius: var(--r-full);
+  font-size: 13px;
+  font-weight: 550;
+  color: var(--color-dim);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  transition: color var(--t-fast) var(--ease-out), background var(--t-fast) var(--ease-out);
+}
+.seg > button[aria-pressed="true"],
+.seg > button[data-on="true"] {
+  color: var(--color-text);
+  background: var(--color-panel);
+  box-shadow: var(--shadow-1);
+}
+
+/* Card surface — used sparingly, never nested. */
+.card {
+  background: var(--color-panel);
+  border: 1px solid var(--color-edge);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-1);
+}
+
+/* Pills & badges. */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: var(--r-full);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.badge-brand {
+  background: var(--color-brand-wash);
+  color: var(--color-brand-strong);
+}
+.badge-pro {
+  background: linear-gradient(100deg, var(--color-brand), var(--color-brand-2));
+  color: var(--color-brand-ink);
+}
+
+/* ------------------------------ scrollbars --------------------------- */
 
 .scroll-thin {
   scrollbar-width: thin;
   scrollbar-color: var(--color-edge) transparent;
 }
-
 .scroll-thin::-webkit-scrollbar {
   width: 9px;
   height: 9px;
 }
-
 .scroll-thin::-webkit-scrollbar-thumb {
   background: var(--color-edge);
   border-radius: 6px;
 }
 
+/* ------------------------------- motion ------------------------------ */
+
 @keyframes pulse-dot {
-  0%,
-  100% {
-    opacity: 0.25;
-  }
-  50% {
-    opacity: 1;
-  }
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 1; }
+}
+.dot-pulse {
+  animation: pulse-dot 1.1s var(--ease-in-out) infinite;
 }
 
-.dot-pulse {
-  animation: pulse-dot 1.1s ease-in-out infinite;
+@keyframes shimmer {
+  from { background-position: -160% 0; }
+  to { background-position: 160% 0; }
+}
+.skeleton {
+  background: linear-gradient(
+    100deg,
+    var(--color-panel-2) 40%,
+    var(--color-edge) 50%,
+    var(--color-panel-2) 60%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.3s var(--ease-in-out) infinite;
+  border-radius: var(--r-md);
+}
+
+/* Enter-from-visible-default reveals. Safe for headless/hidden tabs:
+   the resting state is the final state; the animation only plays it in. */
+@keyframes rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+.rise {
+  animation: rise var(--t-mid) var(--ease-out) both;
 }
 
 /* ---------------------------- mobile shell ---------------------------- */
@@ -148,36 +407,11 @@ textarea {
   margin: 0 auto;
   width: 100%;
   max-width: 560px;
+  padding-top: var(--safe-t);
 }
 
-.pad-safe-b {
-  padding-bottom: calc(16px + var(--safe-b));
-}
-
-/* Every interactive control clears the 48px thumb target. */
 .tap {
   min-height: var(--tap);
-}
-
-.btn {
-  min-height: var(--tap);
-  padding-inline: 18px;
-  font-size: 16px;
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
-}
-
-.btn-sm {
-  min-height: 38px;
-  padding: 6px 12px;
-  font-size: 13px;
-  border-radius: 999px;
-}
-
-.field {
-  min-height: var(--tap);
-  /* 16px keeps iOS Safari from zooming the viewport on focus. */
-  font-size: 16px;
 }
 
 /* ------------------------- swipeable slide deck ------------------------ */
@@ -192,11 +426,9 @@ textarea {
   overscroll-behavior-x: contain;
   padding-inline: 16px;
 }
-
 .deck::-webkit-scrollbar {
   display: none;
 }
-
 .deck > * {
   flex: 0 0 100%;
   scroll-snap-align: center;
@@ -207,11 +439,11 @@ textarea {
 .sheet-scrim {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
-  z-index: 40;
-  animation: fade-in 0.16s ease;
+  background: oklch(0.1 0.02 235 / 0.55);
+  backdrop-filter: blur(2px);
+  z-index: var(--z-scrim);
+  animation: fade-in var(--t-fast) var(--ease-out);
 }
-
 .sheet {
   position: fixed;
   left: 50%;
@@ -225,44 +457,27 @@ textarea {
   background: var(--color-panel);
   border: 1px solid var(--color-edge);
   border-bottom: 0;
-  border-radius: 22px 22px 0 0;
-  z-index: 41;
-  animation: sheet-up 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+  border-radius: var(--r-xl) var(--r-xl) 0 0;
+  box-shadow: var(--shadow-pop);
+  z-index: var(--z-sheet);
+  animation: sheet-up var(--t-sheet) var(--ease-drawer);
   padding-bottom: var(--safe-b);
 }
-
 .sheet-grip {
   width: 40px;
   height: 4px;
-  border-radius: 999px;
+  border-radius: var(--r-full);
   background: var(--color-edge);
   margin: 10px auto 4px;
   flex: none;
 }
-
 @keyframes sheet-up {
-  from {
-    transform: translate(-50%, 100%);
-  }
-  to {
-    transform: translate(-50%, 0);
-  }
+  from { transform: translate(-50%, 100%); }
+  to { transform: translate(-50%, 0); }
 }
-
 @keyframes fade-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .sheet,
-  .sheet-scrim {
-    animation: none;
-  }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 /* --------------------------- bottom action bar ------------------------- */
@@ -270,28 +485,41 @@ textarea {
 .dock {
   position: sticky;
   bottom: 0;
+  z-index: var(--z-dock);
   display: flex;
   gap: 10px;
   padding: 12px 16px calc(12px + var(--safe-b));
   background: linear-gradient(to top, var(--color-ink) 62%, transparent);
 }
 
-/* Horizontal chip rail, e.g. the template strip. */
+/* Horizontal chip rail (template strip, etc.). */
 .rail {
   display: flex;
   gap: 10px;
   overflow-x: auto;
   scrollbar-width: none;
   padding-inline: 16px;
-  /* No scroll-snap here: snapping made the browser scroll past the padding
-     on first paint, clipping the leading chip. */
   scroll-padding-inline: 16px;
 }
-
 .rail::-webkit-scrollbar {
   display: none;
 }
-
 .rail > * {
   flex: 0 0 auto;
+}
+
+/* --------------------------- reduced motion --------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .btn:active:not(:disabled) {
+    transform: none;
+  }
 }
