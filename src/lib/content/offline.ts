@@ -1,6 +1,7 @@
 import type { Deck, Slide, SlideField } from "../types";
 import type { Preset } from "../presets/types";
 import type { ResearchResult } from "./research";
+import { numberWordsToDigits } from "./schema";
 
 /**
  * Deterministic writer used when no ANTHROPIC_API_KEY is configured.
@@ -11,8 +12,6 @@ import type { ResearchResult } from "./research";
  * obvious placeholder rather than an invented fact, and `deck.offline` is set
  * so the UI can say so plainly.
  */
-
-const PLACEHOLDER_STAT = "00%";
 
 function titleCase(s: string): string {
   return s.replace(/\b\w/g, (m) => m.toUpperCase());
@@ -129,7 +128,7 @@ function trimTrailingFiller(s: string): string {
  * function word ("designed to", "and") trimmed off first.
  */
 export function toPhrase(sentence: string, max = 92): string {
-  const s0 = sentence.replace(/\s*\([^)]*\)/g, "").replace(/\s+/g, " ").trim();
+  const s0 = numberWordsToDigits(sentence.replace(/\s*\([^)]*\)/g, "").replace(/\s+/g, " ").trim());
   // Prefer the first sentence when several are present and it fits cleanly.
   const first = s0.split(/(?<=[.!?])\s+/)[0];
   const s = first && first.length <= max ? first : s0;
@@ -152,15 +151,35 @@ export function toPhrase(sentence: string, max = 92): string {
   return trimTrailingFiller(wordCut) + "…";
 }
 
+/**
+ * Pull a real figure out of research facts for a stat-hungry template, so a data
+ * slide shows "6.5 m" or "40%" from a source rather than a fabricated number.
+ * Returns undefined when no fact carries a figure — better an empty slot than an
+ * invented one.
+ */
+function statFromFacts(facts: (string | undefined)[]): Slide["stat"] {
+  for (const f of facts) {
+    if (!f) continue;
+    const m = f.match(/\$?\d[\d,]*(?:\.\d+)?\s?(?:%|percent|million|billion|bn|°c|°f|km|kg|metres?|meters?|×|x)?/i);
+    if (m && /\d/.test(m[0])) {
+      const value = m[0].replace(/percent/i, "%").replace(/\s+/g, " ").trim();
+      return { value, label: toPhrase(f, 46) };
+    }
+  }
+  return undefined;
+}
+
 function fieldsFor(preset: Preset, i: number, topic: string, slideCount: number): Partial<Slide> {
   const need = new Set<SlideField>(preset.needs);
   const out: Partial<Slide> = {};
   if (need.has("bullets")) out.bullets = BULLET_SETS[i % BULLET_SETS.length](topic);
   if (need.has("items")) out.items = ITEM_SETS[0](topic);
   if (need.has("stat")) {
+    // Honest prompt, not a fake "00%" — a draft skeleton should read as a
+    // fillable template, never as a broken number.
     out.stat = {
-      value: PLACEHOLDER_STAT,
-      label: "Replace with a number you can source",
+      value: "Add a stat",
+      label: "one number you can source",
       delta: undefined,
     };
   }
@@ -292,6 +311,8 @@ export function writeOfflineDeck(args: {
         : f.body(topic, i),
       ...extra,
       note: src ? `Source: ${toPhrase(src.title, 44)}` : extra.note,
+      // Real figure from research on data templates; never a fabricated one.
+      stat: extra.stat ? (enriched ? statFromFacts([fact, facts[i + bodyCount]]) : extra.stat) : undefined,
     });
   }
 

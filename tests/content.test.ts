@@ -114,15 +114,33 @@ describe("offline writer", () => {
     expect(writeOfflineDeck({ topic: "t", preset: p, slideCount: 99 }).slides.length).toBe(12);
   });
 
-  it("never invents a statistic — placeholders are obvious", () => {
+  it("never invents a statistic — the skeleton stat is an honest prompt, not a fake number", () => {
     const p = getPreset("datacard");
     const deck = writeOfflineDeck({ topic: "t", preset: p, slideCount: 8 });
     for (const s of deck.slides) {
       if (s.stat) {
-        expect(s.stat.value).toBe("00%");
-        expect(s.stat.label.toLowerCase()).toContain("replace");
+        // A draft-skeleton stat reads as a fillable prompt, never a fabricated figure.
+        expect(/\d/.test(s.stat.value)).toBe(false);
+        expect(s.stat.value.toLowerCase()).toContain("stat");
       }
     }
+  });
+
+  it("uses a real figure from research on a data template, not a placeholder", () => {
+    const p = getPreset("datacard");
+    const research = {
+      lead: "",
+      facts: ["Its mirror spans 6.5 metres across.", "It cost about 10 billion dollars.", "Launched in 2021."],
+      factSources: [0, 0, 0],
+      sources: [{ title: "JWST", url: "https://en.wikipedia.org/wiki/JWST" }],
+      descriptions: [],
+    };
+    const deck = writeOfflineDeck({ topic: "James Webb Space Telescope", preset: p, slideCount: 6, research });
+    const stats = deck.slides.filter((s) => s.stat).map((s) => s.stat!.value);
+    // At least one data slide shows a real number pulled from the facts.
+    expect(stats.some((v) => /\d/.test(v))).toBe(true);
+    // And none of them is the fabricated "00%".
+    expect(stats.some((v) => v === "00%")).toBe(false);
   });
 
   it("is deterministic for the same input", () => {

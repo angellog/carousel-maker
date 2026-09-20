@@ -140,6 +140,19 @@ export function unescapeText(s: string): string {
     .replace(/\u0000/g, "\\");
 }
 
+const NUM_WORDS: Record<string, string> = {
+  two: "2", three: "3", four: "4", five: "5", six: "6", seven: "7",
+  eight: "8", nine: "9", ten: "10", eleven: "11", twelve: "12",
+};
+
+/**
+ * Digits read sharper than number-words on a slide ("3 ways", not "three ways").
+ * "one" is deliberately left alone — "1 of the" / "no 1" read worse than the word.
+ */
+export function numberWordsToDigits(s: string): string {
+  return s.replace(/\b(two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\b/gi, (m) => NUM_WORDS[m.toLowerCase()]);
+}
+
 export function normalizeHashtag(raw: string): string | null {
   const body = raw.replace(/^#+/, "").replace(/[^\p{L}\p{N}_]/gu, "");
   return body ? `#${body.toLowerCase()}` : null;
@@ -164,7 +177,7 @@ export function normalizeDeck(
     const isFirst = i === 0;
     const isLast = i === raw.slides.length - 1;
     const role = s.role ?? (isFirst ? "cover" : isLast ? "cta" : "body");
-    let title = unescapeText(s.title ?? "").trim() || fallback.topic;
+    let title = numberWordsToDigits(unescapeText(s.title ?? "").trim()) || fallback.topic;
     if (wordCount(title) > MAX_TITLE_WORDS) {
       issues.push({ slide: i, field: "title", message: `Title over ${MAX_TITLE_WORDS} words; trimmed.` });
       title = clampWords(title, MAX_TITLE_WORDS);
@@ -175,7 +188,7 @@ export function normalizeDeck(
       role,
       title,
       kicker: s.kicker ? unescapeText(s.kicker).trim() || undefined : undefined,
-      body: s.body ? unescapeText(s.body).trim() || undefined : undefined,
+      body: s.body ? numberWordsToDigits(unescapeText(s.body).trim()) || undefined : undefined,
       bullets: bullets?.length ? bullets : undefined,
       stat: s.stat,
       quote: s.quote,
