@@ -1,0 +1,20 @@
+# Railway build + deploy config for Carousel Maker.
+#
+# Builds the existing production Dockerfile (Next.js standalone) and runs it as a
+# single persistent service. Railway injects PORT at runtime; the standalone
+# server binds it automatically (HOSTNAME=0.0.0.0 is set in the Dockerfile).
+#
+# IMPORTANT: keep this service at ONE replica. The spend limiter
+# (src/lib/providers/ratelimit.ts) counts in memory, which is correct and shared
+# across requests on a single instance. Before scaling to multiple replicas,
+# swap in a shared store via setRateLimitStore (see Milestone 2 / DEPLOY.md).
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+healthcheckPath = "/"
+healthcheckTimeout = 120
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3

@@ -8,6 +8,7 @@ import {
   resolveConfig,
   type ProviderEvent,
 } from "@/lib/providers";
+import { turnstileSecretFromEnv, verifyTurnstile } from "@/lib/turnstile";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -32,9 +33,24 @@ export async function POST(req: Request) {
   const env = envFromProcess();
   const config = resolveConfig(input, env);
 
-  // Spend protection: only the modes that cost *us* money are rate limited.
-  // Bring-your-own-key and the keyless template writer are always free to run.
+  // The paid path (our embedded key) is bot-shielded and rate limited. The
+  // free paths (bring-your-own-key, keyless template writer) skip both, since
+  // they spend the user's money or nobody's.
   if (config.writer.serverPaid) {
+    // 1. Turnstile — stop bots before they can claim a rate-limit slot.
+    const verdict = await verifyTurnstile(
+      req.headers.get("cf-turnstile-response"),
+      turnstileSecretFromEnv(),
+      clientIdFromHeaders(req.headers),
+    );
+    if (!verdict.ok) {
+      return new Response(
+        JSON.stringify({ error: "Please complete the verification and try again." }),
+        { status: 403, headers: { "Content-Type": "application/json" } },
+      );
+    }
+
+    // 2. Spend protection.
     const decision = checkRateLimit(clientIdFromHeaders(req.headers), rateLimitConfigFromEnv());
     if (!decision.ok) {
       return new Response(JSON.stringify({ error: decision.message, limit: decision.limit }), {

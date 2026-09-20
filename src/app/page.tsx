@@ -9,6 +9,7 @@ import SlideDeck from "@/components/SlideDeck";
 import SlideEditor from "@/components/SlideEditor";
 import StylePicker from "@/components/StylePicker";
 import ThemeToggle from "@/components/ThemeToggle";
+import { useTurnstile } from "@/components/useTurnstile";
 import UpgradeSheet from "@/components/UpgradeSheet";
 import { writeOfflineDeck } from "@/lib/content/offline";
 import { VOICES, getVoice } from "@/lib/content/voice";
@@ -127,6 +128,7 @@ export default function Page() {
   const canShare = useMemo(() => canShareFiles(), []);
   const isPro = plan === "pro";
   const quota = quotaState(plan, usage);
+  const { getToken: getTurnstileToken } = useTurnstile();
 
   const sampleDeck = useMemo(
     () =>
@@ -252,10 +254,16 @@ export default function Page() {
       abortRef.current = ac;
       setStage("working");
       setLog([{ kind: "phase", text: research ? "Researching…" : "Writing…" }]);
+      // Only the embedded/hosted path is bot-shielded; BYOK skips the challenge.
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (!req.apiKey) {
+        const token = await getTurnstileToken();
+        if (token) headers["cf-turnstile-response"] = token;
+      }
       try {
         const res = await fetch("/api/generate", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers,
           signal: ac.signal,
           body: JSON.stringify(req),
         });
@@ -320,7 +328,7 @@ export default function Page() {
         bumpUsage();
       }
     },
-    [topic, audience, handle, tone, voiceId, slideCount, presetId, research, researchSource, material, apiKey, plan, usage, isPro, bumpUsage],
+    [topic, audience, handle, tone, voiceId, slideCount, presetId, research, researchSource, material, apiKey, plan, usage, isPro, bumpUsage, getTurnstileToken],
   );
 
   const makeItGreat = useCallback(() => {

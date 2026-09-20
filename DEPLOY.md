@@ -12,6 +12,53 @@ see it. This guide gets you from a blank Ubuntu VPS to a live HTTPS URL.
 > any subscription. If you'd rather not pay per visitor, use the **free Groq**
 > option or the **keyless** tier below; the deploy is identical either way.
 
+## Fastest path — Railway (recommended for the hosted demo)
+
+Railway runs the app as a **persistent container**, so long streaming requests
+just work (no serverless timeouts) and the built-in spend limiter holds in memory
+on a single instance. This is the "safe public demo": your embedded key, bot-
+shielded and budget-capped, with **no database and no accounts** yet.
+
+The repo already ships everything Railway needs: `Dockerfile`, `railway.toml`,
+and `output: "standalone"`.
+
+**Steps (about 10 minutes):**
+
+1. **Push to GitHub.** Railway deploys from a repo. Make sure `main` is pushed.
+2. **Create the service.** [railway.app](https://railway.app) → *New Project* →
+   *Deploy from GitHub repo* → pick this repo. Railway detects `railway.toml` and
+   builds the `Dockerfile`. Leave replicas at **1** (the limiter counts in memory).
+3. **Set the brain (free Groq).** In the service's *Variables*, add:
+   ```
+   CAROUSEL_OSS_BASE_URL=https://api.groq.com/openai/v1
+   CAROUSEL_OSS_MODEL=openai/gpt-oss-120b
+   CAROUSEL_OSS_API_KEY=gsk_...            # your Groq key (free)
+   CAROUSEL_OSS_LABEL=gpt-oss-120b · Groq
+   ```
+   Do **not** add an Anthropic key yet — without accounts, anyone could spend it.
+   Claude turns on in Milestone 2 once Pro is gated by login.
+4. **Set the budget guardrails.** Tune to taste:
+   ```
+   CAROUSEL_RATE_PER_MIN=5
+   CAROUSEL_RATE_PER_DAY=30
+   CAROUSEL_DAILY_BUDGET=300
+   ```
+5. **Add the bot shield (Cloudflare Turnstile, free).**
+   [dash.cloudflare.com](https://dash.cloudflare.com) → *Turnstile* → add a widget
+   for your Railway domain. Then set:
+   ```
+   NEXT_PUBLIC_TURNSTILE_SITE_KEY=0x...    # public, safe in the browser
+   TURNSTILE_SECRET=0x...                   # server-only
+   ```
+   (Skip this to launch without a challenge; add it the moment the URL is public.)
+6. **Deploy & open.** Railway builds and gives you a `*.up.railway.app` URL.
+   Generate a carousel — it should stream a Groq-written deck. Add a custom domain
+   in *Settings → Networking* when ready (Railway handles TLS).
+
+**What's next (Milestone 2):** add Supabase (Auth + Postgres), move the limiter to
+a `PostgresRateLimitStore` via `setRateLimitStore`, gate the embedded Claude+search
+key to logged-in Pro users, and cache research. Then Stripe (Milestone 3).
+
 ## Why this is cheap to run
 
 Every image is rendered, zipped, and downloaded **in the visitor's browser**. The
