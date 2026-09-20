@@ -1,92 +1,42 @@
-import { editorial, duotone, keynote, quoteCard, swiss } from "./editorial";
-import { chalkboard, doodlemascot, notebook, papercollage, pastelnote } from "./handdrawn";
-import { darkgrid, flatcolor, glasschips, promptcard, retro3d } from "./bold";
-import { cheatsheet, flowchart, numberlist, schematic, timeline } from "./structured";
-import { chatthread, compare, datacard, studiomin, warmserif } from "./clean";
-import {
-  architecture,
-  bento,
-  datatable,
-  layerstack,
-  mindmap,
-  panels,
-  processflow,
-  ranking,
-  spectrum,
-  statlist,
-} from "./dense";
-import {
-  colorpop,
-  contents,
-  corpgeo,
-  dossier,
-  essay,
-  indexcover,
-  notecard,
-  rankcard,
-  specsheet,
-  studysheet,
-} from "./covers";
+import { editorial, keynote, quoteCard } from "./editorial";
+import { cheatsheet, numberlist, timeline } from "./structured";
+import { compare, datacard } from "./clean";
+import { statlist } from "./dense";
+import { colorpop, contents, essay } from "./covers";
 import type { Preset } from "./types";
 
 /**
- * The 45 shipped presets, in picker order.
+ * The shipped presets, in picker order — a curated set of the carousel formats
+ * that actually win (saves, shares, screenshots), one impeccable template per
+ * format rather than a long tail of lookalikes:
  *
- * Ordering is deliberate: the formats that carry the most information per
- * slide come first, because a carousel that explains something well beats a
- * carousel that merely looks good. See docs/preset-research.md for the source
- * of each one.
+ *   - data / ranked list   → statlist, datacard   (the most-saved format)
+ *   - bold statement / hook → keynote             (also one-big-number slides)
+ *   - listicle / tips       → numberlist, cheatsheet
+ *   - how-to / steps        → timeline
+ *   - comparison / vs       → compare              (most comments + shares)
+ *   - story / editorial      → editorial, essay, quoteCard, contents
+ *   - playful               → colorpop
+ *
+ * Information-dense formats come first: a carousel that explains something well
+ * beats one that merely looks good. See docs/preset-research.md.
  */
 export const PRESETS: Preset[] = [
-  // Information-dense first.
+  // Data & lists.
   statlist,
-  keynote,
+  datacard,
   numberlist,
-  datatable,
-  panels,
-  processflow,
   cheatsheet,
-  editorial,
-  ranking,
   compare,
-  bento,
-  layerstack,
-  contents,
   timeline,
-  architecture,
-  mindmap,
-  spectrum,
-  // Hand-drawn and study formats.
-  notebook,
-  studysheet,
-  indexcover,
-  chalkboard,
-  colorpop,
-  pastelnote,
-  doodlemascot,
-  papercollage,
-  notecard,
-  rankcard,
-  dossier,
-  // Editorial and minimal.
+  contents,
+  // Statement & editorial.
+  keynote,
+  editorial,
   essay,
   quoteCard,
-  warmserif,
-  studiomin,
-  specsheet,
-  swiss,
-  corpgeo,
-  duotone,
-  // Bold and technical.
-  flatcolor,
-  retro3d,
-  promptcard,
-  glasschips,
-  darkgrid,
-  schematic,
-  flowchart,
-  datacard,
-  chatthread,
+  // Playful.
+  colorpop,
 ];
 
 export const PRESET_BY_ID = new Map(PRESETS.map((p) => [p.id, p]));

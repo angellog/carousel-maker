@@ -79,13 +79,13 @@ function deckFor(presetId: string): Deck {
 }
 
 describe("preset registry", () => {
-  it("ships exactly 45 presets", () => {
-    expect(PRESETS).toHaveLength(45);
+  it("ships exactly 12 curated presets", () => {
+    expect(PRESETS).toHaveLength(12);
   });
 
   it("has unique ids", () => {
-    expect(new Set(PRESETS.map((p) => p.id)).size).toBe(45);
-    expect(PRESET_BY_ID.size).toBe(45);
+    expect(new Set(PRESETS.map((p) => p.id)).size).toBe(12);
+    expect(PRESET_BY_ID.size).toBe(12);
   });
 
   it("declares only real palettes, including its default", () => {

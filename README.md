@@ -6,7 +6,7 @@ you post-ready PNGs — straight into the share sheet on a phone.
 **Built for a phone.** One column, one primary action per screen, everything
 reachable with a thumb. Swipe through the deck the same way your audience will.
 
-Forty-five templates, **all drawn from vectors and type — no image-generation
+Twelve carousel templates — one per winning format — **all drawn from vectors and type — no image-generation
 model is involved anywhere.** Every texture, icon, chart, table, diagram, doodle
 and 3D letter is produced from paths, gradients and procedural noise on a canvas.
 
@@ -61,7 +61,7 @@ How the key is handled:
 | --- | --- |
 | `npm run dev` | Dev server on :4321 |
 | `npm run build` | Production build |
-| `npm test` | Full suite (528 tests) |
+| `npm test` | Full suite (264 tests) |
 | `npm run lint` | `tsc --noEmit` |
 | `npm run samples` | Writes one PNG per template to `samples/` |
 
@@ -99,7 +99,7 @@ drained. The full design, the config, and how to add a new brain are in
 
 ```
 topic ──► research + copywriting ──► Deck (JSON) ──► Preset.render() ──► Scene ──► canvas ──► PNG / ZIP
-             (Claude + web search)     preset-agnostic    25 templates   display list   one painter
+             (Claude + web search)     preset-agnostic    12 templates   display list   one painter
 ```
 
 Four ideas carry the whole system:
@@ -114,7 +114,7 @@ download runs the same call at 2× (2160×2700). There is no second rendering
 path that could drift.
 
 **3. Headlines get a box, not a font size.** `fitText` re-wraps and re-measures
-at each trial size until the text fits its box. This is why 25 templates survive
+at each trial size until the text fits its box. This is why every template survives
 copy of any length — the test suite proves it with 300-word headlines.
 
 **4. Nothing needs an image model.** `src/lib/render/` ships a vector icon set,
@@ -143,17 +143,13 @@ src/lib/
     icons.ts            ~35 stroke-drawn icons + keyword→icon mapping
     diagrams.ts         Tables, ranked rows, podiums, layer stacks, mind maps,
                         axes, component graphs, panel grids, bento mosaics
-  presets/
+  presets/            The 12 curated templates, one per winning format
     _shared.ts          The composition engine every template builds on
-    editorial.ts        keynote · editorial · swiss · duotone · quote
-    handdrawn.ts        chalkboard · notebook · pastelnote · doodlemascot · papercollage
-    bold.ts             retro3d · flatcolor · promptcard · glasschips · darkgrid
-    structured.ts       schematic · cheatsheet · numberlist · flowchart · timeline
-    clean.ts            studiomin · warmserif · compare · datacard · chatthread
-    dense.ts            statlist · ranking · datatable · layerstack · mindmap ·
-                        spectrum · bento · processflow · architecture · panels
-    covers.ts           dossier · studysheet · indexcover · contents · colorpop ·
-                        corpgeo · notecard · rankcard · specsheet · essay
+    dense.ts            statlist
+    clean.ts            compare · datacard
+    structured.ts       cheatsheet · numberlist · timeline
+    editorial.ts        keynote · editorial · quote
+    covers.ts           contents · colorpop · essay
   content/
     schema.ts           Validation + normalisation of model output
     prompt.ts           System/user prompts and the submit_deck tool schema
@@ -172,35 +168,28 @@ components/             Mobile shell: swipeable deck, bottom sheets, lazy thumbs
 
 ---
 
-## The 45 templates
+## The 12 templates
 
-The list opens with the formats that carry the most information per slide,
-because that is usually what the reader actually wanted.
+Curated down from an earlier set of 45 to the formats that actually win a
+carousel — the ones people save, share and screenshot — with one impeccable
+template per format rather than a long tail of lookalikes. Information-dense
+formats come first.
 
-**Data & structure** — `statlist` (rank badge · icon · label · big figure),
-`datatable` (a real comparison grid), `ranking` (tiered podium), `panels`
-(do/don't, quadrants), `bento` (mixed-size card mosaic), `layerstack`
-(isometric numbered tiers), `contents` (index with leader dots), `timeline`,
-`compare`, `datacard`, `spectrum` (labelled scale), `processflow` (staged icon
-flow), `architecture` (wired components), `mindmap` (hub and spokes),
-`numberlist`, `cheatsheet`.
+| Format (why it wins) | Template |
+| --- | --- |
+| **Data / one big number** — the most-saved format | `statlist` (rank · icon · label · figure), `datacard` (number + chart) |
+| **Comparison / vs / before-after** — most comments & shares | `compare` (two-column ✓/✕) |
+| **Listicle / tips** — scannable, high-save | `numberlist`, `cheatsheet` |
+| **How-to / steps** — tutorials | `timeline` |
+| **Table of contents / index** | `contents` |
+| **Bold statement / hook** — earns the swipe | `keynote` |
+| **Story / editorial / quotable line** | `editorial`, `essay`, `quote` |
+| **Playful** — a colour per word | `colorpop` |
 
-**Study & hand-drawn** — `notebook`, `studysheet` (numbered panels around a
-figure), `indexcover` (handbook cover with preview chips and stats),
-`chalkboard`, `colorpop` (a colour per word), `pastelnote`, `doodlemascot`,
-`papercollage`, `notecard`, `rankcard`, `dossier` (profile poster).
-
-**Editorial & minimal** — `essay`, `quote`, `editorial`, `warmserif`,
-`studiomin`, `specsheet`, `swiss`, `corpgeo`, `duotone`, `keynote`.
-
-**Bold & technical** — `flatcolor`, `retro3d`, `promptcard`, `glasschips`,
-`darkgrid`, `schematic`, `flowchart`, `chatthread`.
-
-Every one lists the fields it renders (`Preset.needs`) and a `brief` telling the
+Each lists the fields it renders (`Preset.needs`) and a `brief` telling the
 writer how to fill them, so the copy is shaped for the layout rather than poured
-into it.
-
-Where these came from, and how to retune one, is in
+into it. The selection is grounded in current carousel research (saves/shares by
+format); the earlier catalogue and how to retune a template are in
 [`docs/preset-research.md`](docs/preset-research.md).
 
 ### Adding or changing a template
@@ -229,7 +218,7 @@ export const mine: Preset = {
 ```
 
 Add it to `PRESETS` in `src/lib/presets/index.ts`. The test suite picks it up
-automatically and will hold it to the same standards as the other 45.
+automatically and will hold it to the same standards as the others.
 
 ---
 
@@ -262,7 +251,7 @@ file manager. Browsers that cannot share files fall back to a ZIP download
 automatically, and there is always a ⤓ button for the ZIP.
 
 Editing happens in bottom sheets rather than side panels — Edit for the current
-slide's fields, Style for the 45 templates plus colours and text size, Caption
+slide's fields, Style for the 12 templates plus colours and text size, Caption
 for the caption, hashtags, sources and saving the project.
 
 ## What you get on download
@@ -277,7 +266,7 @@ topic-carousel.zip
 
 ## Testing
 
-528 tests. The ones that matter:
+264 tests. The ones that matter:
 
 - **Every preset × every slide × every palette** renders without producing a
   single `NaN` coordinate — plus bare decks, 300-word headlines, one-character

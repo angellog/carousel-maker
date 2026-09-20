@@ -32,7 +32,7 @@ interface LogLine {
 
 const TONES = ["Direct and practical", "Warm and personal", "Contrarian", "Analytical", "Playful"];
 /** The rail on the home screen — a spread of looks, not the full 45. */
-const FEATURED = ["statlist", "keynote", "numberlist", "notebook", "datatable", "chalkboard", "editorial", "bento"];
+const FEATURED = ["statlist", "datacard", "numberlist", "compare", "timeline", "keynote", "editorial", "colorpop"];
 
 export default function Page() {
   const [stage, setStage] = useState<Stage>("compose");
