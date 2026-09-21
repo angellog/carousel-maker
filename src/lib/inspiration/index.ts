@@ -383,14 +383,14 @@ export function matchPreset(ex: ExtractedPalette): string {
 
   let id: string;
   if (veryVivid) {
-    id = "colorpop";
+    id = "gradient";
   } else if (ex.dark) {
-    id = dense ? "statlist" : "keynote";
+    id = dense ? "terminal" : "manifesto";
   } else {
-    id = dense ? "numberlist" : "editorial";
+    id = dense ? "broadsheet" : "serifzine";
   }
 
-  return PRESET_BY_ID.has(id) ? id : PRESET_BY_ID.has("keynote") ? "keynote" : id;
+  return PRESET_BY_ID.has(id) ? id : PRESET_BY_ID.has("manifesto") ? "manifesto" : id;
 }
 
 /** Sentence-case a preset name's first word for the note line. */

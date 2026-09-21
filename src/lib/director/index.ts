@@ -65,18 +65,18 @@ export type VoiceId = "straight" | "mentor" | "contrarian" | "analyst" | "hype";
 /* ------------------------------- registries ------------------------------- */
 
 /** The safe fallback when nothing else fits: a bold single-idea Keynote. */
-const FALLBACK_PRESET_ID = "keynote";
+const FALLBACK_PRESET_ID = "manifesto";
 
 /** Each format's home template (all ids verified against PRESETS below). */
 const FORMAT_PRESET: Record<DeckFormat, string> = {
-  comparison: "compare",
-  "how-to": "timeline",
-  list: "numberlist",
-  data: "statlist",
-  "myth-bust": "keynote",
-  story: "editorial",
-  quote: "quote",
-  "deep-dive": "essay",
+  comparison: "versus",
+  "how-to": "roadmap",
+  list: "memo",
+  data: "ledger",
+  "myth-bust": "manifesto",
+  story: "serifzine",
+  quote: "magazine",
+  "deep-dive": "whitepaper",
 };
 
 /** Default slide count per format, before clamping to the preset range. */
@@ -400,14 +400,12 @@ function pickPalette(preset: Preset, domain: Domain | null): PalettePick {
 
 function formatReason(format: DeckFormat, preset: Preset): string {
   switch (preset.id) {
-    case "colorpop":
-      return "A light, playful topic, so the Colour Pop template fits.";
-    case "contents":
-      return "Reads like an overview, so the Contents template lays it out as an index.";
-    case "cheatsheet":
-      return "A reference style list, so the Cheatsheet template fits.";
-    case "datacard":
-      return "Built around one headline number, so the Data Card template fits.";
+    case "arcade":
+      return "A light, playful topic, so the Arcade template fits.";
+    case "spec":
+      return "A reference style list, so the Spec Sheet template fits.";
+    case "swiss":
+      return "Built around one headline number, so the Swiss template makes it the hero.";
     default:
       return `${FORMAT_LABEL[format]} topic, so the ${preset.name} template fits.`;
   }
@@ -457,10 +455,10 @@ export function directDeck(input: DirectorInput): ArtDirection {
 
   // Base template from the format, then opinionated overrides.
   let presetId = FORMAT_PRESET[format];
-  if (format === "data" && detectBigNumber(hay)) presetId = "datacard";
-  if (detectReference(hay)) presetId = "cheatsheet";
-  if (detectOverview(hay)) presetId = "contents";
-  if (playful) presetId = "colorpop";
+  if (format === "data" && detectBigNumber(hay)) presetId = "swiss";
+  if (detectReference(hay)) presetId = "spec";
+  if (detectOverview(hay)) presetId = "roadmap";
+  if (playful) presetId = "arcade";
 
   const preset = safePreset(presetId);
   const [lo, hi] = preset.slideRange;

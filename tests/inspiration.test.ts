@@ -131,24 +131,24 @@ describe("paletteFromExtracted", () => {
 });
 
 describe("matchPreset", () => {
-  it("maps a vivid image to colorpop", () => {
-    expect(matchPreset(extractPalette(THREE, 9, 3))).toBe("colorpop");
+  it("maps a vivid image to gradient", () => {
+    expect(matchPreset(extractPalette(THREE, 9, 3))).toBe("gradient");
   });
 
-  it("maps a dark, dense image to statlist", () => {
-    expect(matchPreset(extractPalette(CHECKER, 8, 8))).toBe("statlist");
+  it("maps a dark, dense image to terminal", () => {
+    expect(matchPreset(extractPalette(CHECKER, 8, 8))).toBe("terminal");
   });
 
-  it("maps a dark, airy image to keynote", () => {
-    expect(matchPreset(extractPalette(SOLID_DARK, 6, 6))).toBe("keynote");
+  it("maps a dark, airy image to manifesto", () => {
+    expect(matchPreset(extractPalette(SOLID_DARK, 6, 6))).toBe("manifesto");
   });
 
-  it("maps a light, airy image to editorial", () => {
-    expect(matchPreset(extractPalette(SOLID_LIGHT, 6, 6))).toBe("editorial");
+  it("maps a light, airy image to serifzine", () => {
+    expect(matchPreset(extractPalette(SOLID_LIGHT, 6, 6))).toBe("serifzine");
   });
 
-  it("maps a light, dense image to numberlist", () => {
-    expect(matchPreset(extractPalette(LIGHT_BUSY, 8, 8))).toBe("numberlist");
+  it("maps a light, dense image to broadsheet", () => {
+    expect(matchPreset(extractPalette(LIGHT_BUSY, 8, 8))).toBe("broadsheet");
   });
 
   it("always returns a real preset id for every fixture", () => {

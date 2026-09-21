@@ -1,49 +1,33 @@
-import { editorial, keynote, quoteCard } from "./editorial";
-import { cheatsheet, numberlist, timeline } from "./structured";
-import { compare, datacard } from "./clean";
-import { statlist } from "./dense";
-import { colorpop, contents, essay } from "./covers";
-import { TECHNICAL_PRESETS } from "./technical";
 import { PREMIUM_PRESETS } from "./premium";
+import { FUNCTIONAL_PRESETS } from "./functional";
+import { TECHNICAL_PRESETS } from "./technical";
 import { VIVID_PRESETS } from "./vivid";
+import { PRESS_PRESETS } from "./press";
+import { FUN_PRESETS } from "./fun";
 import type { Preset } from "./types";
 
 /**
- * The shipped presets, in picker order — a curated set of the carousel formats
- * that actually win (saves, shares, screenshots), one impeccable template per
- * format rather than a long tail of lookalikes:
+ * The shipped templates — 24 distinct design systems, each drawn entirely from
+ * vectors, type and canvas decor (no image models). Grouped by family:
  *
- *   - data / ranked list   → statlist, datacard   (the most-saved format)
- *   - bold statement / hook → keynote             (also one-big-number slides)
- *   - listicle / tips       → numberlist, cheatsheet
- *   - how-to / steps        → timeline
- *   - comparison / vs       → compare              (most comments + shares)
- *   - story / editorial      → editorial, essay, quoteCard, contents
- *   - playful               → colorpop
+ *   premium     → swiss, magazine, whitepaper, manifesto   (editorial / statement)
+ *   functional  → ledger, podium, versus, roadmap          (data / comparison / steps)
+ *   technical   → blueprint, terminal, brutalist, spec      (technical / bold)
+ *   vivid       → aurora, sticky, receipt, chalkboard        (playful / textured)
+ *   press       → broadsheet, serifzine, minimalist, gradient (editorial / minimal / bold)
+ *   fun         → memo, arcade, polaroid, doodle             (playful)
  *
- * Information-dense formats come first: a carousel that explains something well
- * beats one that merely looks good. See docs/preset-research.md.
+ * PRESETS[0] is the safe fallback for an unknown id, so it leads with a clean,
+ * universal template. The Art Director (`src/lib/director`) maps each content
+ * format to the best template here.
  */
 export const PRESETS: Preset[] = [
-  // Data & lists.
-  statlist,
-  datacard,
-  numberlist,
-  cheatsheet,
-  compare,
-  timeline,
-  contents,
-  // Statement & editorial.
-  keynote,
-  editorial,
-  essay,
-  quoteCard,
-  // Playful.
-  colorpop,
-  // Expanded design systems: technical/bold, editorial/premium, playful/vivid.
-  ...TECHNICAL_PRESETS, // blueprint, terminal, brutalist, spec
-  ...PREMIUM_PRESETS, // swiss, magazine, whitepaper, manifesto
-  ...VIVID_PRESETS, // aurora, sticky, receipt, chalkboard
+  ...PREMIUM_PRESETS,
+  ...FUNCTIONAL_PRESETS,
+  ...TECHNICAL_PRESETS,
+  ...VIVID_PRESETS,
+  ...PRESS_PRESETS,
+  ...FUN_PRESETS,
 ];
 
 export const PRESET_BY_ID = new Map(PRESETS.map((p) => [p.id, p]));

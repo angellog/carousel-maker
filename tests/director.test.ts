@@ -76,63 +76,63 @@ describe("detectFormat", () => {
 });
 
 describe("directDeck template selection", () => {
-  it("routes a comparison topic to the Compare template", () => {
+  it("routes a comparison topic to the Versus template", () => {
     const d = directDeck({ topic: "Figma vs Sketch for product design" });
-    expect(d.presetId).toBe("compare");
+    expect(d.presetId).toBe("versus");
     expect(d.format).toBe("comparison");
     expectValid(d);
   });
 
-  it("routes a listicle to the Number List template", () => {
+  it("routes a listicle to the Memo template", () => {
     const d = directDeck({ topic: "7 mistakes new managers make" });
-    expect(d.presetId).toBe("numberlist");
+    expect(d.presetId).toBe("memo");
     expect(d.format).toBe("list");
     expectValid(d);
   });
 
-  it("routes a how-to topic to the Timeline template", () => {
+  it("routes a how-to topic to the Roadmap template", () => {
     const d = directDeck({ topic: "How to start running" });
-    expect(d.presetId).toBe("timeline");
+    expect(d.presetId).toBe("roadmap");
     expect(d.format).toBe("how-to");
     expectValid(d);
   });
 
   it("routes a stats topic to a data template", () => {
     const d = directDeck({ topic: "The state of AI in 2026 (stats)" });
-    expect(["statlist", "datacard"]).toContain(d.presetId);
+    expect(["ledger", "swiss"]).toContain(d.presetId);
     expect(d.format).toBe("data");
     expectValid(d);
   });
 
-  it("routes a myth topic to the Keynote template", () => {
+  it("routes a myth topic to the Manifesto template", () => {
     const d = directDeck({ topic: "5 myths about sleep you still believe" });
-    expect(d.presetId).toBe("keynote");
+    expect(d.presetId).toBe("manifesto");
     expect(d.format).toBe("myth-bust");
     expectValid(d);
   });
 
-  it("routes a personal story to the Editorial template", () => {
+  it("routes a personal story to the Serif Zine template", () => {
     const d = directDeck({ topic: "How I quit my job and went indie" });
-    expect(d.presetId).toBe("editorial");
+    expect(d.presetId).toBe("serifzine");
     expect(d.format).toBe("story");
     expectValid(d);
   });
 
-  it("routes a reference list to the Cheatsheet template", () => {
+  it("routes a reference list to the Spec template", () => {
     const d = directDeck({ topic: "20 git commands cheat sheet" });
-    expect(d.presetId).toBe("cheatsheet");
+    expect(d.presetId).toBe("spec");
     expectValid(d);
   });
 
-  it("routes an overview to the Contents template", () => {
+  it("routes an overview to the Roadmap template", () => {
     const d = directDeck({ topic: "Course overview: what to expect" });
-    expect(d.presetId).toBe("contents");
+    expect(d.presetId).toBe("roadmap");
     expectValid(d);
   });
 
-  it("routes a playful topic to Colour Pop with a hype voice", () => {
+  it("routes a playful topic to Arcade with a hype voice", () => {
     const d = directDeck({ topic: "Fun pop culture trivia quiz" });
-    expect(d.presetId).toBe("colorpop");
+    expect(d.presetId).toBe("arcade");
     expect(d.voiceId).toBe("hype");
     expect(d.tone).toBe("Playful");
     expectValid(d);
@@ -151,9 +151,9 @@ describe("directDeck voice and palette", () => {
   });
 
   it("leans the palette toward the domain when the preset allows it", () => {
-    // AI is a tech topic; statlist offers electric which is a tech lean.
+    // AI is a tech topic; ledger offers blueprint, which is a tech lean.
     const d = directDeck({ topic: "The state of AI in 2026 (stats)" });
-    expect(d.paletteId).toBe("electric");
+    expect(d.paletteId).toBe("blueprint");
   });
 
   it("only ever chooses palettes the chosen preset was designed against", () => {
@@ -212,14 +212,14 @@ describe("directDeck robustness", () => {
 
   it("returns a valid safe fallback for an empty topic", () => {
     const d = directDeck({ topic: "" });
-    expect(d.presetId).toBe("keynote");
+    expect(d.presetId).toBe("manifesto");
     expect(d.reasons[0].toLowerCase()).toContain("no readable topic");
     expectValid(d);
   });
 
   it("returns a valid safe fallback for garbage input", () => {
     const d = directDeck({ topic: "!!!   ??? ***" });
-    expect(d.presetId).toBe("keynote");
+    expect(d.presetId).toBe("manifesto");
     expectValid(d);
   });
 
