@@ -14,7 +14,7 @@
  * nothing and the others still stand.
  */
 
-import { researchTopic, toSentences, type ResearchResult } from "../../content/research";
+import { researchTopic, searchQuery, toSentences, type ResearchResult } from "../../content/research";
 import type { Researcher } from "../types";
 
 const WIKI = "https://en.wikipedia.org";
@@ -59,7 +59,7 @@ async function extendedExtract(title: string, fetchImpl: typeof fetch, ms: numbe
 }
 
 async function duckDuckGo(topic: string, fetchImpl: typeof fetch, ms: number): Promise<Partial<ResearchResult>> {
-  const url = `${DDG}?q=${encodeURIComponent(topic)}&format=json&no_html=1&skip_disambig=1`;
+  const url = `${DDG}?q=${encodeURIComponent(searchQuery(topic))}&format=json&no_html=1&skip_disambig=1`;
   const data = await getJson<DdgResponse>(url, fetchImpl, ms);
   if (!data?.AbstractText) return {};
   const sources = data.AbstractURL

@@ -109,7 +109,35 @@ function topicTokens(topic: string): string[] {
   return topic
     .toLowerCase()
     .split(/[^a-z0-9]+/)
-    .filter((t) => t.length >= 4 && !STOPWORDS.has(t));
+    .filter((t) => t.length >= 4 && !STOPWORDS.has(t) && !YEAR.test(t));
+}
+
+/** Small function words to drop from a search query (beyond STOPWORDS). */
+const QUERY_DROP = new Set([
+  "how", "to", "a", "an", "of", "in", "on", "at", "by", "or", "vs", "versus", "is", "are",
+  "do", "does", "did", "you", "my", "our", "get", "make",
+]);
+const YEAR = /^(19|20)\d{2}$/;
+
+/**
+ * Turn a topic into a focused Wikipedia/DDG search query: keep the subject,
+ * drop how-to scaffolding, generic list words, and bare years. "How to grow an
+ * audience on LinkedIn in 2026" becomes "grow audience LinkedIn", which finds
+ * the right article instead of "2026 in the United States" or "Grow Up Show".
+ * Falls back to the raw topic if stripping leaves nothing.
+ */
+export function searchQuery(topic: string): string {
+  const words = topic.trim().split(/\s+/);
+  const kept = words.filter((w) => {
+    const low = w.toLowerCase().replace(/[^a-z0-9]/g, "");
+    if (!low) return false;
+    if (YEAR.test(low)) return false;
+    if (low.length < 3) return false;
+    if (STOPWORDS.has(low) || QUERY_DROP.has(low) || GENERIC_TOKENS.has(low)) return false;
+    return true;
+  });
+  const q = kept.join(" ").trim();
+  return q.length >= 3 ? q : topic.trim();
 }
 
 /**
@@ -125,9 +153,11 @@ export async function researchTopic(
   const maxArticles = opts?.maxArticles ?? 5;
   const q = topic.trim();
   if (!q) return EMPTY;
+  // Search on the subject, not the whole how-to sentence.
+  const query = searchQuery(q);
 
   const search = await getJson<SearchResp>(
-    `${WIKI}/w/rest.php/v1/search/page?q=${encodeURIComponent(q)}&limit=6`,
+    `${WIKI}/w/rest.php/v1/search/page?q=${encodeURIComponent(query)}&limit=6`,
     fetchImpl,
     timeoutMs,
   );

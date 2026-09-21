@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { researchTopic, toSentences } from "@/lib/content/research";
+import { researchTopic, toSentences, searchQuery } from "@/lib/content/research";
 import { writeOfflineDeck } from "@/lib/content/offline";
 import { getPreset } from "@/lib/presets";
 import { plain } from "@/lib/render/text";
@@ -73,6 +73,30 @@ describe("toSentences", () => {
   it("returns nothing for empty or junk input", () => {
     expect(toSentences("")).toEqual([]);
     expect(toSentences("short.")).toEqual([]);
+  });
+});
+
+describe("searchQuery", () => {
+  it("keeps the subject and drops how-to scaffolding and bare years", () => {
+    const q = searchQuery("How to grow an audience on LinkedIn in 2026").toLowerCase();
+    expect(q).toContain("grow");
+    expect(q).toContain("audience");
+    expect(q).toContain("linkedin");
+    expect(q).not.toContain("2026");
+    expect(q).not.toMatch(/\bhow\b/);
+  });
+
+  it("drops generic list words but keeps the real topic", () => {
+    const q = searchQuery("5 common myths about intermittent fasting").toLowerCase();
+    expect(q).toContain("intermittent");
+    expect(q).toContain("fasting");
+    expect(q).not.toContain("myths");
+    expect(q).not.toContain("common");
+  });
+
+  it("leaves a plain subject untouched and falls back safely", () => {
+    expect(searchQuery("Photosynthesis")).toBe("Photosynthesis");
+    expect(searchQuery("how to")).toBe("how to"); // nothing significant left → fallback
   });
 });
 
