@@ -440,7 +440,8 @@ export default function Page() {
   if (stage === "compose" || stage === "working") {
     const working = stage === "working";
     return (
-      <main className="app">
+      <main className="app app-split">
+        <div className="pane-controls">
         <div className="flex-1 overflow-y-auto">
           <header className="flex items-start justify-between gap-2 px-4 pt-5">
             <div>
@@ -599,6 +600,18 @@ export default function Page() {
             </>
           )}
         </div>
+        </div>
+
+        {/* Desktop-only stage: a large live preview of the selected template. */}
+        <aside className="pane-stage">
+          <div className="stage-card">
+            <SlideCanvas deck={previewDeck} presetId={presetId} paletteId={paletteId} index={1} scale={0.4} />
+            <p className="text-[12px] text-[var(--color-dim)]">
+              Live preview · <strong className="text-[var(--color-text)]">{preset.name}</strong>
+            </p>
+          </div>
+        </aside>
+
         <input
           ref={fileRef}
           type="file"
@@ -727,7 +740,8 @@ export default function Page() {
   const missing = missingFields(deck, preset.needs).filter((f) => !["kicker", "note", "body"].includes(f));
 
   return (
-    <main className="app">
+    <main className="app app-studio">
+      <div className="s-head flex-none">
       <header className="flex flex-none items-center gap-2 px-4 pt-4">
         <button className="btn btn-sm" onClick={() => setStage("compose")} aria-label="Back">←</button>
         <div className="min-w-0 flex-1">
@@ -757,15 +771,17 @@ export default function Page() {
             : "Draft skeleton — the layout is real, the words are placeholders. Tap Edit to replace them, or add an API key for AI-written copy."}
         </p>
       )}
+      </div>
 
-      <div className="flex-1 overflow-y-auto py-4">
+      <div className="s-stage flex-1 overflow-y-auto py-4">
         <SlideDeck deck={deck} presetId={presetId} paletteId={paletteId} typeScale={typeScale} index={index} onIndex={setIndex} />
+      </div>
 
-        <div className="mt-5 grid grid-cols-3 gap-2 px-4">
-          <button className="btn" onClick={() => setSheet("edit")}>Edit</button>
-          <button className="btn" onClick={() => setSheet("caption")}>Caption</button>
-          <button className="btn" onClick={() => void runExport("one")} disabled={!!busy}>This slide</button>
-        </div>
+      <div className="s-actions">
+      <div className="grid grid-cols-3 gap-2 px-4">
+        <button className="btn" onClick={() => setSheet("edit")}>Edit</button>
+        <button className="btn" onClick={() => setSheet("caption")}>Caption</button>
+        <button className="btn" onClick={() => void runExport("one")} disabled={!!busy}>This slide</button>
       </div>
 
       <div className="dock">
@@ -775,6 +791,7 @@ export default function Page() {
         {canShare && (
           <button className="btn" disabled={!!busy} onClick={() => void runExport("zip")} aria-label="Download as zip">⤓</button>
         )}
+      </div>
       </div>
 
       <Sheet

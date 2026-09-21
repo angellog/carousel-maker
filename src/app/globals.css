@@ -508,6 +508,140 @@ canvas.slide {
   flex: 0 0 auto;
 }
 
+/* ------------------------- responsive: desktop ------------------------ */
+/*
+ * Phone-first everywhere above: .app is a single centred column. At >=900px
+ * the two working screens become genuine two-pane layouts and the bottom
+ * sheets dock as a right-hand side panel. The mobile markup is untouched —
+ * the stage panes are display:none until the breakpoint, so the phone column
+ * renders exactly as before.
+ */
+
+.pane-controls {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+}
+.pane-stage {
+  display: none;
+}
+
+@media (min-width: 900px) {
+  /* Compose: familiar controls column on the left, a live preview on the right. */
+  .app-split {
+    max-width: 1180px;
+    height: 100dvh;
+    flex-direction: row;
+    align-items: stretch;
+    gap: 32px;
+    padding-inline: 32px;
+  }
+  .app-split .pane-controls {
+    flex: none;
+    width: 464px;
+    height: 100dvh;
+    overflow: hidden;
+  }
+  .app-split .dock {
+    background: none;
+    padding-inline: 0;
+  }
+  .pane-stage {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    align-items: center;
+    justify-content: center;
+    height: 100dvh;
+    padding-block: 24px;
+  }
+  .stage-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    max-width: 560px;
+    padding: 28px;
+    border-radius: var(--r-xl);
+    background: var(--color-panel-2);
+    border: 1px solid var(--color-edge);
+    box-shadow: var(--shadow-1);
+  }
+  .stage-card > * {
+    max-width: 100%;
+  }
+
+  /* Studio: the deck fills the left; header and actions stack on the right. */
+  .app-studio {
+    display: grid;
+    max-width: 1180px;
+    height: 100dvh;
+    grid-template-columns: minmax(0, 1fr) 384px;
+    grid-template-rows: auto minmax(0, 1fr);
+    column-gap: 32px;
+    padding-inline: 32px;
+  }
+  .app-studio .s-head {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .app-studio .s-stage {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 0;
+  }
+  .app-studio .s-actions {
+    grid-column: 2;
+    grid-row: 2;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    gap: 12px;
+    min-height: 0;
+    padding-bottom: 20px;
+  }
+  .app-studio .s-actions .dock {
+    position: static;
+    background: none;
+    padding-inline: 0;
+  }
+
+  /* Bottom sheets dock as a right-hand side panel. */
+  .sheet {
+    left: auto;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    transform: none;
+    width: 464px;
+    max-width: 92vw;
+    height: 100dvh;
+    max-height: none;
+    border-radius: var(--r-xl) 0 0 var(--r-xl);
+    border: 1px solid var(--color-edge);
+    border-right: 0;
+    animation: sheet-in-right var(--t-sheet) var(--ease-drawer);
+    padding-bottom: 16px;
+  }
+  .sheet-grip {
+    display: none;
+  }
+  @keyframes sheet-in-right {
+    from {
+      transform: translateX(100%);
+    }
+    to {
+      transform: translateX(0);
+    }
+  }
+}
+
 /* --------------------------- reduced motion --------------------------- */
 
 @media (prefers-reduced-motion: reduce) {

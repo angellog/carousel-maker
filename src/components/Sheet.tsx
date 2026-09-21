@@ -15,21 +15,29 @@ interface Props {
 export default function Sheet({ open, title, onClose, children, footer }: Props) {
   const ref = useRef<HTMLDivElement>(null);
 
+  // Keep the latest onClose without making it an effect dependency. Callers pass
+  // a fresh inline arrow every render; if the effect below re-ran on that, it
+  // would call ref.focus() on every keystroke and steal focus from the fields
+  // inside the sheet.
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") onCloseRef.current();
     };
     document.addEventListener("keydown", onKey);
     // Stop the page behind the sheet from scrolling on touch.
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    // Focus the dialog once when it opens, not on every re-render.
     ref.current?.focus();
     return () => {
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = prev;
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
 
