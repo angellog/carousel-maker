@@ -99,7 +99,11 @@ export function makeOpenAIWriter(config: WriterConfig): Writer {
       // Hosts hiccup: a transient 429/5xx — and, seen in practice on Groq, an
       // occasional 400 under load — should not drop the user to the offline
       // draft. Retry a couple of times with a short backoff before giving up.
-      const transient = (status: number) => status === 429 || status === 400 || status >= 500;
+      // Groq's large models intermittently return 400/404 under load even when
+      // the model id is correct, so treat those as transient too (a genuinely
+      // wrong id just retries a couple of times, then falls back with a clear
+      // "check CAROUSEL_OSS_MODEL" message). 401 stays non-transient.
+      const transient = (status: number) => status === 429 || status === 400 || status === 404 || status >= 500;
       const doFetch = () =>
         fetchImpl(`${base}/chat/completions`, {
           method: "POST",
