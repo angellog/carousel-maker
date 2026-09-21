@@ -138,20 +138,34 @@ export async function researchTopic(
   const seen = new Set<string>();
   const tokens = topicTokens(q);
 
+  // Guard against a whiffed search. When a topic has no Wikipedia article (most
+  // how-to and opinion topics), the search still returns *something* as the top
+  // hit — often an unrelated person or band. If even that top hit shares no
+  // topic token in its title/description/excerpt, we must NOT trust it: treat it
+  // like a secondary hit (filter its sentences, take no lead), so the writer
+  // falls back to an honest draft instead of an off-topic one about a stranger.
+  const primaryText = `${pages[0]?.title ?? ""} ${pages[0]?.description ?? ""} ${pages[0]?.excerpt ?? ""} ${summaries[0]?.description ?? ""}`.toLowerCase();
+  // Match on a 5-char stem so plurals/inflections count ("habits" → "habit",
+  // "cleaning" → "clean") while a genuine miss ("sneakers" vs a person) still
+  // fails. A coarse gate: a false match just means we trust the article.
+  const stem = (t: string) => t.slice(0, 5);
+  const primaryRelevant = tokens.length === 0 || tokens.some((t) => primaryText.includes(stem(t)));
+
   summaries.forEach((sum, i) => {
     if (!sum?.extract) return;
     const url = sum.content_urls?.desktop?.page ?? `${WIKI}/wiki/${encodeURIComponent(pages[i].key)}`;
     const sourceIdx = sources.length;
-    if (sum.description) descriptions.push(sum.description);
-    if (!lead) lead = sum.extract.split(/(?<=[.!?])\s+/).slice(0, 2).join(" ").trim();
-    // The best-matching article (i === 0) *is* the topic, so every sentence is
-    // on-topic. Secondary hits are only "related" — a namesake, a sub-article.
-    // A namesake ("James E. Webb") shares the *name* tokens but never the
-    // topic-distinctive ones ("space", "telescope"), so require a sentence to
-    // carry a topic token that isn't part of this article's own title. That
-    // keeps genuine sub-articles ("Webb's First Deep Field") and drops the
-    // person the thing is named after.
-    const primary = i === 0;
+    // A trusted top hit is the topic itself, so every sentence is on-topic.
+    // Secondary hits (and an untrusted top hit) are only "related" — a namesake,
+    // a sub-article, or an unrelated search miss. A namesake ("James E. Webb")
+    // shares the *name* tokens but never the topic-distinctive ones ("space",
+    // "telescope"), so require a sentence to carry a topic token that isn't part
+    // of this article's own title. That keeps genuine sub-articles ("Webb's
+    // First Deep Field") and drops the person the thing is named after.
+    const trust = i === 0 && primaryRelevant;
+    if (sum.description && (trust || i !== 0)) descriptions.push(sum.description);
+    // The lead anchors the cover, so only take it from a trusted top hit.
+    if (!lead && trust) lead = sum.extract.split(/(?<=[.!?])\s+/).slice(0, 2).join(" ").trim();
     const titleTokens = new Set(topicTokens(sum.title ?? pages[i].title));
     const distinctive = tokens.filter((t) => !titleTokens.has(t));
     const bar = distinctive.length > 0 ? distinctive : tokens;
@@ -162,7 +176,7 @@ export async function researchTopic(
     };
     let kept = 0;
     for (const sentence of toSentences(sum.extract)) {
-      if (!primary && !onTopic(sentence)) continue;
+      if (!trust && !onTopic(sentence)) continue;
       const key = sentence.toLowerCase().slice(0, 40);
       if (seen.has(key)) continue;
       seen.add(key);
@@ -171,7 +185,7 @@ export async function researchTopic(
       kept++;
     }
     // Only cite an article we actually drew a fact from.
-    if (primary || kept > 0) sources.push({ title: sum.title ?? pages[i].title, url });
+    if (kept > 0) sources.push({ title: sum.title ?? pages[i].title, url });
   });
 
   return { lead, facts, factSources, sources, descriptions };

@@ -164,6 +164,35 @@ describe("researchTopic", () => {
     // The biography contributed no usable fact, so it should not be cited.
     expect(r.sources.map((s) => s.title)).not.toContain("James E. Webb");
   });
+
+  it("discards a whiffed search whose top hit is unrelated (how-to topic)", async () => {
+    // "How to clean white sneakers" has no Wikipedia article, so search returns
+    // an unrelated person as the top hit. It must not poison the deck: no lead,
+    // no facts, no citation — the writer falls back to an honest draft.
+    const fixture = {
+      search: [{ key: "Donald_Trump", title: "Donald Trump" }],
+      summaries: {
+        Donald_Trump: {
+          title: "Donald Trump",
+          description: "President of the United States",
+          extract:
+            "Donald John Trump is an American politician, media personality, and businessman who is the 47th president of the United States. A member of the Republican Party, he served as the 45th president from 2017 to 2021.",
+        },
+      },
+    };
+    const r = await researchTopic("How to clean white sneakers without ruining them", { fetchImpl: stubFetch(fixture) });
+    expect(r.lead).toBe("");
+    expect(r.facts).toEqual([]);
+    expect(r.sources).toEqual([]);
+    expect(r.facts.join(" ")).not.toMatch(/Trump|president/i);
+  });
+
+  it("still trusts a relevant top hit fully", async () => {
+    // Sanity: the guard must not over-fire. A genuine match keeps its facts.
+    const r = await researchTopic("habit", { fetchImpl: stubFetch(FIXTURE) });
+    expect(r.lead).toContain("habit");
+    expect(r.facts.length).toBeGreaterThan(2);
+  });
 });
 
 describe("offline writer with research", () => {
