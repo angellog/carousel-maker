@@ -26,8 +26,8 @@ and 3D letter is produced from paths, gradients and procedural noise on a canvas
   and unlocks Inspiration + Brand Kit. See [PRODUCT.md](docs/PRODUCT.md).
 
 **Docs:** [PRODUCT.md](docs/PRODUCT.md) · [DESIGN.md](docs/DESIGN.md) ·
-[CREATORS.md](docs/CREATORS.md) · [PROVIDERS.md](docs/PROVIDERS.md) ·
-[preset-research.md](docs/preset-research.md)
+[CREATORS.md](docs/CREATORS.md) · [carousel-formats.md](docs/carousel-formats.md) ·
+[PROVIDERS.md](docs/PROVIDERS.md) · [preset-research.md](docs/preset-research.md)
 
 ## Quick start
 

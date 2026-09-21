@@ -1,6 +1,8 @@
 import type { Preset } from "../presets/types";
 import type { SlideField } from "../types";
 import { voiceSystemPrompt } from "./voice";
+import { blueprintSection } from "./blueprints";
+import { detectFormat } from "../director";
 
 export interface GenerateInput {
   topic: string;
@@ -82,6 +84,12 @@ export function buildSystemPrompt(preset: Preset, input: GenerateInput): string 
     "- The last slide is `role: \"cta\"` — one clear action. No hard sell.",
     "- Everything between is `role: \"body\"`.",
     "- Body slides must escalate: each one should be a reason to keep swiping.",
+    "",
+    blueprintSection(detectFormat(input.topic, input.material), input.slideCount),
+    "",
+    "## Caption",
+    "- Open with a hook line, then 2–3 concrete value lines, then one clear CTA.",
+    "- Plain, spoken language. No em dashes. No filler openers.",
     "",
     "## Honesty",
     "- Only state a statistic if you actually found it in a search result, and put the source in `sources`.",
