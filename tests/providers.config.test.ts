@@ -55,6 +55,18 @@ describe("resolveConfig — writer precedence", () => {
     expect(c.writer.label).toMatch(/llama-3\.3-70b-versatile/);
     expect(c.writer.label).toMatch(/Groq/);
   });
+
+  it("scrubs a stray invisible character from a pasted OSS key", () => {
+    // A key copy-pasted into a dashboard can pick up a U+2028 line separator,
+    // which would crash the Authorization header. It must be stripped, and the
+    // endpoint must still count as configured + server-paid.
+    const dirty = "gsk_live_" + "a".repeat(47) + " ";
+    const c = resolveConfig(input(), { ...OSS, CAROUSEL_OSS_API_KEY: dirty });
+    expect(c.writer.kind).toBe("openai");
+    expect(c.writer.serverPaid).toBe(true);
+    expect(c.writer.apiKey).toBe("gsk_live_" + "a".repeat(47));
+    expect(/[^\x21-\x7E]/.test(c.writer.apiKey ?? "")).toBe(false);
+  });
 });
 
 describe("resolveConfig — research axis", () => {

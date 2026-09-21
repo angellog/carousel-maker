@@ -91,6 +91,20 @@ export function toSentences(text: string): string[] {
 
 /** Significant lowercased tokens from the topic, for relevance matching. */
 const STOPWORDS = new Set(["the", "and", "for", "with", "from", "your", "that", "this", "into", "how", "why", "what", "when"]);
+/**
+ * Generic list/filler words that are never the subject of a topic. Used to find
+ * the head noun: in "common myths about intermittent fasting" the subject is
+ * "fasting", not "myths", so an article matching only "intermittent" (like acute
+ * intermittent porphyria) must not qualify.
+ */
+const GENERIC_TOKENS = new Set([
+  "guide", "guides", "tips", "explained", "basics", "basic", "myths", "myth", "facts",
+  "overview", "introduction", "intro", "ways", "things", "thing", "mistakes", "mistake",
+  "secrets", "secret", "hacks", "reasons", "reason", "steps", "rules", "lessons", "lesson",
+  "examples", "example", "ideas", "idea", "tricks", "trick", "strategies", "strategy",
+  "methods", "method", "best", "worst", "common", "simple", "complete", "ultimate",
+  "essential", "essentials", "tutorial", "everything", "about",
+]);
 function topicTokens(topic: string): string[] {
   return topic
     .toLowerCase()
@@ -145,14 +159,22 @@ export async function researchTopic(
   // like a secondary hit (filter its sentences, take no lead), so the writer
   // falls back to an honest draft instead of an off-topic one about a stranger.
   const primaryText = `${pages[0]?.title ?? ""} ${pages[0]?.description ?? ""} ${pages[0]?.excerpt ?? ""} ${summaries[0]?.description ?? ""}`.toLowerCase();
-  // Match on a 5-char stem so plurals/inflections count ("habits" → "habit",
-  // "cleaning" → "clean") while a genuine miss ("sneakers" vs a person) still
-  // fails. A coarse gate: a false match just means we trust the article.
+  // Match on a 5-char stem so plurals/inflections count ("habits" → "habit").
   const stem = (t: string) => t.slice(0, 5);
-  const primaryRelevant = tokens.length === 0 || tokens.some((t) => primaryText.includes(stem(t)));
+  const inText = (t: string) => primaryText.includes(stem(t));
+  // Require the topic's head noun (its last non-generic token, the true
+  // subject) to appear, OR at least two distinct topic tokens. One common word
+  // ("intermittent") is not enough — that's how an article about intermittent
+  // porphyria slipped in for "intermittent fasting".
+  const head = [...tokens].reverse().find((t) => !GENERIC_TOKENS.has(t));
+  const distinctMatches = new Set(tokens.filter(inText)).size;
+  const primaryRelevant = tokens.length === 0 || (head ? inText(head) : false) || distinctMatches >= 2;
 
   summaries.forEach((sum, i) => {
     if (!sum?.extract) return;
+    // A whiffed top hit (an irrelevant search miss) contributes nothing — an
+    // honest empty result beats off-topic sentences that share a generic word.
+    if (i === 0 && !primaryRelevant) return;
     const url = sum.content_urls?.desktop?.page ?? `${WIKI}/wiki/${encodeURIComponent(pages[i].key)}`;
     const sourceIdx = sources.length;
     // A trusted top hit is the topic itself, so every sentence is on-topic.

@@ -46,6 +46,19 @@ export interface ResolvedConfig {
 
 const DEFAULT_MODEL = "claude-sonnet-5";
 
+/**
+ * Strip a key of surrounding quotes and every whitespace / control / separator
+ * character — including U+2028/U+2029, which a copy-paste into a hosting
+ * dashboard can smuggle in invisibly and which would otherwise crash the
+ * Authorization header ("Cannot convert argument to a ByteString"). Real keys
+ * are visible ASCII, so this never harms a valid one.
+ */
+function cleanKey(raw: string | undefined): string | undefined {
+  if (!raw) return undefined;
+  const k = raw.replace(/^["']|["']$/g, "").replace(/[\s\x00-\x1F\x7F-\x9F]/g, "");
+  return k || undefined;
+}
+
 function ossLabel(env: Env): string {
   if (env.CAROUSEL_OSS_LABEL) return env.CAROUSEL_OSS_LABEL;
   // Strip any provider prefix ("openai/gpt-oss-120b" → "gpt-oss-120b").
@@ -73,7 +86,8 @@ export function pickResearchSource(input: GenerateInput, env: Env): ResearchSour
 export function resolveConfig(input: GenerateInput, env: Env): ResolvedConfig {
   const model = env.CAROUSEL_MODEL || DEFAULT_MODEL;
   const byokKey = sanitizeKey(input.apiKey);
-  const serverAnthropic = env.CAROUSEL_API_KEY || env.ANTHROPIC_API_KEY;
+  const serverAnthropic = cleanKey(env.CAROUSEL_API_KEY || env.ANTHROPIC_API_KEY);
+  const ossKey = cleanKey(env.CAROUSEL_OSS_API_KEY);
   const ossConfigured = !!(env.CAROUSEL_OSS_BASE_URL && env.CAROUSEL_OSS_MODEL);
 
   // The researcher runs for writers that cannot search the web themselves.
@@ -99,12 +113,12 @@ export function resolveConfig(input: GenerateInput, env: Env): ResolvedConfig {
         kind: "openai",
         label: ossLabel(env),
         model: env.CAROUSEL_OSS_MODEL,
-        apiKey: env.CAROUSEL_OSS_API_KEY,
+        apiKey: ossKey,
         baseUrl: env.CAROUSEL_OSS_BASE_URL,
         byok: false,
         // A hosted OSS endpoint with a key costs us money; a local one (no key,
         // e.g. Ollama) does not, so it needs no rate limit.
-        serverPaid: !!env.CAROUSEL_OSS_API_KEY,
+        serverPaid: !!ossKey,
       },
       research: researchForWriter("openai"),
     };

@@ -54,6 +54,9 @@ export function extractJsonObject(text: string): string | null {
 export function makeOpenAIWriter(config: WriterConfig): Writer {
   const model = config.model || "gpt-4o-mini";
   const base = (config.baseUrl || "").replace(/\/+$/, "");
+  // Defense in depth: the Authorization header must be a valid ByteString, so
+  // drop any non-visible-ASCII the key might carry (config also cleans it).
+  const authKey = config.apiKey?.replace(/[^\x21-\x7E]/g, "");
   return {
     kind: "openai",
     label: config.label,
@@ -99,7 +102,7 @@ export function makeOpenAIWriter(config: WriterConfig): Writer {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            ...(config.apiKey ? { Authorization: `Bearer ${config.apiKey}` } : {}),
+            ...(authKey ? { Authorization: `Bearer ${authKey}` } : {}),
           },
           body: JSON.stringify(body),
           signal: ctx.signal,

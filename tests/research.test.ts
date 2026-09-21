@@ -193,6 +193,43 @@ describe("researchTopic", () => {
     expect(r.lead).toContain("habit");
     expect(r.facts.length).toBeGreaterThan(2);
   });
+
+  it("rejects an article that shares only a generic word, not the subject", async () => {
+    // "acute intermittent porphyria" shares "intermittent" with "intermittent
+    // fasting" but not the subject ("fasting"). It must not qualify.
+    const fixture = {
+      search: [{ key: "Porphyria", title: "Porphyria" }],
+      summaries: {
+        Porphyria: {
+          title: "Porphyria",
+          description: "Group of liver disorders",
+          extract:
+            "Porphyria is a group of disorders in which substances called porphyrins build up. The acute intermittent type affects the nervous system. Symptoms of an attack include abdominal pain and vomiting that lasts days.",
+        },
+      },
+    };
+    const r = await researchTopic("Common myths about intermittent fasting", { fetchImpl: stubFetch(fixture) });
+    expect(r.facts).toEqual([]);
+    expect(r.lead).toBe("");
+    expect(r.facts.join(" ")).not.toMatch(/porphyria/i);
+  });
+
+  it("accepts an article that matches the subject noun", async () => {
+    const fixture = {
+      search: [{ key: "Intermittent_fasting", title: "Intermittent fasting" }],
+      summaries: {
+        Intermittent_fasting: {
+          title: "Intermittent fasting",
+          description: "Eating pattern that cycles between fasting and eating",
+          extract:
+            "Intermittent fasting is any of various meal timing schedules that cycle between fasting and eating. Studies suggest intermittent fasting can support weight management for some people. It is not recommended for everyone, including those with a history of disordered eating.",
+        },
+      },
+    };
+    const r = await researchTopic("Common myths about intermittent fasting", { fetchImpl: stubFetch(fixture) });
+    expect(r.facts.length).toBeGreaterThan(0);
+    expect(r.facts.join(" ").toLowerCase()).toMatch(/fasting/);
+  });
 });
 
 describe("offline writer with research", () => {
