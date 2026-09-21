@@ -41,7 +41,7 @@ interface LogLine {
 
 const TONES = ["Direct and practical", "Warm and personal", "Contrarian", "Analytical", "Playful"];
 /** The rail on the home screen — a spread of looks, not all 12. */
-const FEATURED = ["statlist", "datacard", "numberlist", "compare", "timeline", "keynote", "editorial", "colorpop"];
+const FEATURED = ["statlist", "keynote", "blueprint", "magazine", "compare", "timeline", "aurora", "brutalist", "editorial", "colorpop"];
 
 /* ------------------------- local persistence ------------------------- */
 
@@ -95,7 +95,6 @@ export default function Page() {
   const [slideCount, setSlideCount] = useState(8);
   const [countTouched, setCountTouched] = useState(false);
   const [research, setResearch] = useState(true);
-  const [researchSource, setResearchSource] = useState<"wikipedia" | "web">("wikipedia");
   const [material, setMaterial] = useState("");
   const [apiKey, setApiKey] = useState("");
 
@@ -248,8 +247,6 @@ export default function Page() {
         slideCount: over.slideCount ?? slideCount,
         presetId: over.presetId ?? presetId,
         research,
-        // Pro reads the deeper keyless tier by default when no key is present.
-        researchSource: research ? (isPro && !apiKey ? "web" : researchSource) : undefined,
         material: material.trim() || undefined,
         apiKey: apiKey.trim() || undefined,
       };
@@ -334,7 +331,7 @@ export default function Page() {
         bumpUsage();
       }
     },
-    [topic, audience, handle, tone, voiceId, slideCount, presetId, research, researchSource, material, apiKey, plan, usage, isPro, bumpUsage, getTurnstileToken],
+    [topic, audience, handle, tone, voiceId, slideCount, presetId, research, material, apiKey, plan, usage, isPro, bumpUsage, getTurnstileToken],
   );
 
   const makeItGreat = useCallback(() => {
@@ -540,7 +537,7 @@ export default function Page() {
             <button className="btn justify-between" onClick={() => setSheet("options")} disabled={working}>
               <span>Options</span>
               <span className="truncate text-sm text-[var(--color-dim)]">
-                {slideCount} · {research ? (apiKey ? "live" : researchSource === "web" ? "web" : "wiki") : "no research"}
+                {slideCount} · {research ? (apiKey ? "live research" : "research on") : "no research"}
               </span>
             </button>
           </div>
@@ -652,31 +649,16 @@ export default function Page() {
                 {preset.name} suits {preset.slideRange[0]}–{preset.slideRange[1]}
               </div>
             </div>
-            <label className="tap flex items-center gap-3 text-sm">
-              <input type="checkbox" checked={research} onChange={(e) => setResearch(e.target.checked)} className="size-5 accent-[var(--color-brand)]" />
-              Research the topic first
-            </label>
-            {research && !apiKey && (
-              <div>
-                <span className="eyebrow">Research source</span>
-                <div className="mt-1 grid grid-cols-2 gap-2">
-                  {(["wikipedia", "web"] as const).map((src) => (
-                    <button
-                      key={src}
-                      onClick={() => setResearchSource(src)}
-                      className="btn btn-sm justify-center"
-                      style={researchSource === src ? { borderColor: "var(--color-brand)", color: "var(--color-brand)" } : undefined}
-                    >
-                      {src === "wikipedia" ? "Wikipedia" : "Web"}
-                    </button>
-                  ))}
-                </div>
-                <p className="prose-tight mt-1 text-[11px] text-[var(--color-dim)]">
-                  Keyless and free. <strong>Wikipedia</strong> uses article summaries; <strong>Web</strong> adds a deeper
-                  extract plus a DuckDuckGo cross-check. With your own API key, the model searches the live web instead.
-                </p>
+            <label className="block">
+              <div className="tap flex items-center gap-3 text-sm">
+                <input type="checkbox" checked={research} onChange={(e) => setResearch(e.target.checked)} className="size-5 accent-[var(--color-brand)]" />
+                Research the topic first
               </div>
-            )}
+              <p className="prose-tight mt-1 text-[11px] text-[var(--color-dim)]">
+                The writer establishes the real facts before writing, for specific, organised copy over generic filler.
+                {apiKey ? " With your own key, it searches the live web." : ""}
+              </p>
+            </label>
             <ApiKeyField value={apiKey} onChange={setApiKey} />
             <label className="block">
               <span className="eyebrow">Source material (optional)</span>
@@ -771,7 +753,7 @@ export default function Page() {
           }
         >
           {deck.enriched
-            ? `Drafted from public sources (${deck.researchSource === "web" ? "Web — Wikipedia + DuckDuckGo" : "Wikipedia"}) — free, no key. Facts are real; tighten the wording, then add your angle.`
+            ? "Drafted from public sources — free, no key. Facts are real; tighten the wording, then add your angle."
             : "Draft skeleton — the layout is real, the words are placeholders. Tap Edit to replace them, or add an API key for AI-written copy."}
         </p>
       )}

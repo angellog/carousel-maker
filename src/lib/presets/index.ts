@@ -3,6 +3,9 @@ import { cheatsheet, numberlist, timeline } from "./structured";
 import { compare, datacard } from "./clean";
 import { statlist } from "./dense";
 import { colorpop, contents, essay } from "./covers";
+import { TECHNICAL_PRESETS } from "./technical";
+import { PREMIUM_PRESETS } from "./premium";
+import { VIVID_PRESETS } from "./vivid";
 import type { Preset } from "./types";
 
 /**
@@ -37,6 +40,10 @@ export const PRESETS: Preset[] = [
   quoteCard,
   // Playful.
   colorpop,
+  // Expanded design systems: technical/bold, editorial/premium, playful/vivid.
+  ...TECHNICAL_PRESETS, // blueprint, terminal, brutalist, spec
+  ...PREMIUM_PRESETS, // swiss, magazine, whitepaper, manifesto
+  ...VIVID_PRESETS, // aurora, sticky, receipt, chalkboard
 ];
 
 export const PRESET_BY_ID = new Map(PRESETS.map((p) => [p.id, p]));

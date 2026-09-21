@@ -67,7 +67,7 @@ export default function Gallery() {
   return (
     <main className="p-6">
       <div className="mb-4 flex items-center gap-4">
-        <h1 className="text-xl font-bold">All 25 templates</h1>
+        <h1 className="text-xl font-bold">All {PRESETS.length} templates</h1>
         <label className="flex items-center gap-2 text-sm text-[var(--color-dim)]">
           Slide
           <input

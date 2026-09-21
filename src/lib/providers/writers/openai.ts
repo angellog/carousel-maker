@@ -71,8 +71,11 @@ export function makeOpenAIWriter(config: WriterConfig): Writer {
         "call a function, reply with ONLY the deck as a raw JSON object matching " +
         "the same schema — no prose, no markdown fences.";
       const user = buildUserPrompt(
-        { ...input, slideCount, research: false },
-        research && research.facts.length > 0 ? { facts: research.facts, sources: research.sources } : {},
+        { ...input, slideCount },
+        {
+          canSearch: false, // OSS models can't browse — research from knowledge
+          ...(research && research.facts.length > 0 ? { facts: research.facts, sources: research.sources } : {}),
+        },
       );
 
       const body = {

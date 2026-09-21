@@ -76,21 +76,21 @@ describe("POST /api/generate — input validation", () => {
 });
 
 describe("POST /api/generate — keyless stream", () => {
-  it("streams a keyless notice, sources, and an enriched template deck", async () => {
+  it("streams a keyless notice and a draft template deck (no pre-fetched research)", async () => {
     vi.stubGlobal("fetch", wikiFetch());
-    const res = await POST(req({ topic: "Habits", research: true, slideCount: 6, presetId: "keynote", researchSource: "wikipedia" }));
+    const res = await POST(req({ topic: "Habits", research: true, slideCount: 6, presetId: "keynote" }));
     expect(res.status).toBe(200);
     expect(res.headers.get("Content-Type")).toContain("text/event-stream");
 
     const events = await readSse(res);
-    expect(events.some((e) => e.type === "notice" && /public sources/i.test(String(e.message)))).toBe(true);
-    expect(events.some((e) => e.type === "source")).toBe(true);
+    // Keyless Wikipedia research is retired: a keyless notice, no source events.
+    expect(events.some((e) => e.type === "notice")).toBe(true);
+    expect(events.some((e) => e.type === "source")).toBe(false);
 
     const deckEvent = events.find((e) => e.type === "deck") as { deck: { engineKind: string; enriched: boolean; sources: unknown[] } };
     expect(deckEvent).toBeTruthy();
     expect(deckEvent.deck.engineKind).toBe("template");
-    expect(deckEvent.deck.enriched).toBe(true);
-    expect(deckEvent.deck.sources.length).toBeGreaterThan(0);
+    expect(deckEvent.deck.enriched).toBe(false);
   });
 });
 

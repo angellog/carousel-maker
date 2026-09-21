@@ -75,15 +75,16 @@ describe("resolveConfig — research axis", () => {
     expect(c.research).toBe("none");
   });
 
-  it("routes wikipedia to the template writer by default", () => {
+  it("no longer pre-fetches a keyless source for the template writer", () => {
     const c = resolveConfig(input({ research: true }), {});
     expect(c.writer.kind).toBe("template");
-    expect(c.research).toBe("wikipedia");
+    expect(c.research).toBe("none");
   });
 
-  it("honours an explicit web source for OSS", () => {
-    const c = resolveConfig(input({ research: true, researchSource: "web" }), OSS);
-    expect(c.research).toBe("web");
+  it("no longer pre-fetches for the OSS writer (it researches from its own knowledge)", () => {
+    const c = resolveConfig(input({ research: true }), OSS);
+    expect(c.writer.kind).toBe("openai");
+    expect(c.research).toBe("none");
   });
 
   it("is 'none' when research is off", () => {
@@ -91,8 +92,8 @@ describe("resolveConfig — research axis", () => {
     expect(c.research).toBe("none");
   });
 
-  it("respects a server default research source", () => {
-    expect(pickResearchSource(input({ research: true }), { CAROUSEL_RESEARCH_SOURCE: "web" })).toBe("web");
-    expect(pickResearchSource(input({ research: true }), {})).toBe("wikipedia");
+  it("pickResearchSource is web-only now, or none when off", () => {
+    expect(pickResearchSource(input({ research: true }), {})).toBe("web");
+    expect(pickResearchSource(input({ research: false }), {})).toBe("none");
   });
 });

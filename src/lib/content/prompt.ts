@@ -110,6 +110,12 @@ export interface UserPromptOptions {
    */
   facts?: string[];
   sources?: { title: string; url: string }[];
+  /**
+   * Whether this writer can actually search the live web (Claude can; an
+   * OSS/Groq model cannot). When false and research is on, the model is asked to
+   * establish the facts from its own knowledge rather than "search".
+   */
+  canSearch?: boolean;
 }
 
 export function buildUserPrompt(input: GenerateInput, opts: UserPromptOptions = {}): string {
@@ -137,12 +143,20 @@ export function buildUserPrompt(input: GenerateInput, opts: UserPromptOptions = 
     lines.push("", "Write the deck now. Do not claim to have searched; use the facts above where they fit and your own knowledge for the rest.");
     return lines.join("\n");
   }
-  if (input.research) {
+  const canSearch = opts.canSearch ?? true;
+  if (input.research && canSearch) {
     lines.push(
       "",
       "Before writing, search the web for what is actually true and current about this topic:",
       "specific numbers, recent changes, common failure modes, and the strongest counter-argument.",
       "Run two to four focused searches. Then write the deck.",
+    );
+  } else if (input.research) {
+    // A model that cannot browse: research from its own knowledge first.
+    lines.push(
+      "",
+      "Research the topic from your own knowledge before writing. First establish the real, specific facts: concrete numbers, named examples, the actual mechanism, and the common failure modes. Then write the deck from those facts — organised and specific.",
+      "Do not invent statistics you are unsure of; where you lack a real number, make the point qualitatively. No generic filler, no slop: every slide must carry a concrete, non-obvious point.",
     );
   } else {
     lines.push("", "Do not search. Write from what you already know, and stay qualitative rather than inventing figures.");

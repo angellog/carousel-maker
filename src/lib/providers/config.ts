@@ -76,11 +76,9 @@ function ossLabel(env: Env): string {
 
 export function pickResearchSource(input: GenerateInput, env: Env): ResearchSource {
   if (!input.research) return "none";
-  const requested = input.researchSource;
-  if (requested === "wikipedia" || requested === "web") return requested;
-  const envSource = env.CAROUSEL_RESEARCH_SOURCE;
-  if (envSource === "wikipedia" || envSource === "web") return envSource;
-  return "wikipedia";
+  // One research mode now: "web". The old keyless Wikipedia source was retired
+  // because it returned unrelated articles for conceptual topics.
+  return "web";
 }
 
 export function resolveConfig(input: GenerateInput, env: Env): ResolvedConfig {
@@ -90,10 +88,12 @@ export function resolveConfig(input: GenerateInput, env: Env): ResolvedConfig {
   const ossKey = cleanKey(env.CAROUSEL_OSS_API_KEY);
   const ossConfigured = !!(env.CAROUSEL_OSS_BASE_URL && env.CAROUSEL_OSS_MODEL);
 
-  // The researcher runs for writers that cannot search the web themselves.
-  // Claude does its own web search, so we do not pre-fetch facts for it.
-  const researchForWriter = (writerKind: WriterKind): ResearchSource =>
-    writerKind === "claude" ? "none" : pickResearchSource(input, env);
+  // Research is now the writer's own job: Claude searches the live web itself,
+  // and the OSS/template writers establish facts from their own knowledge. We
+  // no longer pre-fetch a keyless source (retired Wikipedia — it slopped
+  // conceptual topics with unrelated articles). `input.research` still gates
+  // whether the model does a facts-first pass (see the writer prompt).
+  const researchForWriter = (_writerKind: WriterKind): ResearchSource => "none";
 
   if (byokKey) {
     return {

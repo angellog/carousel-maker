@@ -26,7 +26,7 @@ habit. It works with no account and no API key.
 | Pillar | What it means in the product |
 |---|---|
 | **Topic in, carousel out** | One field, one primary action. `Make it great` runs the whole pipeline. |
-| **Taste is the product** | 12 curated templates (culled from 45), each obeying real design laws (see [DESIGN.md](DESIGN.md)). |
+| **Taste is the product** | 24 templates across many design systems, each obeying real design laws (see [DESIGN.md](DESIGN.md)). |
 | **Works for anyone, keyless** | Free Wikipedia/Web research; bring your own key for live web; hosted brains in between. See [PROVIDERS.md](PROVIDERS.md). |
 | **Honest** | Never invents a statistic. Real figures trace to a source; a stat with no sourced number becomes a label. |
 | **Personality** | Five writer voices; the copy has a point of view, not a template smell. |
@@ -71,7 +71,7 @@ output quality.** It removes friction and unlocks the magic.
 
 | | Free | Pro (`$8/mo`) |
 |---|---|---|
-| Templates | All 12 | All 12 |
+| Templates | All 24 | All 24 |
 | Voices | All 5 | All 5 |
 | Art Director | ✓ | ✓ |
 | Research | Keyless (Wikipedia/Web) or your key | Deeper web tier by default, no key |

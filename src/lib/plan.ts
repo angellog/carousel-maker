@@ -66,7 +66,7 @@ export const PLANS: Record<PlanId, PlanDef> = {
     quotaPeriod: "week",
     features: new Set(FREE_FEATURES),
     perks: [
-      "All 12 winning templates",
+      "All 24 templates",
       "All 5 writer voices",
       "Art Director auto-pick",
       "Keyless research, or bring your own key",

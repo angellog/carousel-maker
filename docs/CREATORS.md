@@ -20,7 +20,7 @@ fast, free to run, and yours to use.
 
 - **My picks** — generate with the exact template, voice and options you chose,
   instead of letting the Art Director decide.
-- **Template** — the rail shows featured looks; **All 12** opens the full set,
+- **Template** — the rail shows featured looks; **All 24** opens the full set,
   filterable, with colour options per template.
 - **Voice** — pick how the copy talks: Straight Shooter, Mentor, Contrarian,
   Analyst, or Hype. Each has a real point of view.

@@ -33,7 +33,7 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: "Carousel Maker — topic in, carousel out",
   description:
-    "Turn a topic into a finished, ready-to-post Instagram carousel. 12 winning templates, an Art Director, and honest research — with zero image-generation models.",
+    "Turn a topic into a finished, ready-to-post Instagram carousel. 24 templates, an Art Director, and honest research — with zero image-generation models.",
   appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "Carousel" },
 };
 

@@ -60,14 +60,16 @@ function run(input: GenerateInput, env: Env, fetchImpl: typeof fetch) {
 const base: GenerateInput = { topic: "Habits", slideCount: 6, presetId: "keynote", research: true };
 
 describe("generateDeck — keyless template path", () => {
-  it("researches Wikipedia and writes an enriched template deck when nothing is configured", async () => {
+  it("writes a keyless draft deck without any pre-fetched research", async () => {
     const out = await run(base, {}, stub("deck"));
     expect(out.config.writer.kind).toBe("template");
     expect(out.deck.engineKind).toBe("template");
     expect(out.deck.offline).toBe(true);
-    expect(out.deck.enriched).toBe(true);
-    expect(out.deck.sources.length).toBeGreaterThan(0);
-    expect(out.events.some((e) => e.type === "source")).toBe(true);
+    // Keyless Wikipedia research was retired, so the template writer produces an
+    // honest draft skeleton, not enriched facts, and cites nothing.
+    expect(out.config.research).toBe("none");
+    expect(out.deck.enriched).toBe(false);
+    expect(out.events.some((e) => e.type === "source")).toBe(false);
   });
 });
 
