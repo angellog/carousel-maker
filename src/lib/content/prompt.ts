@@ -116,17 +116,17 @@ export function buildUserPrompt(input: GenerateInput, opts: UserPromptOptions = 
   if (opts.facts && opts.facts.length > 0) {
     lines.push(
       "",
-      "Researched facts (from public sources — treat these as the ground truth and build the deck around them; do not invent statistics beyond what appears here):",
+      "Some facts gathered from public sources are below. They can be incomplete or, occasionally, off-topic (keyless search sometimes returns an unrelated article). Use your judgement: build on the ones genuinely about this topic, ignore any that are not, and use your own knowledge to fill the gaps. Do not invent specific statistics the facts don't support.",
       ...opts.facts.slice(0, 40).map((f) => `- ${f}`),
     );
     if (opts.sources && opts.sources.length > 0) {
       lines.push(
         "",
-        "Cite these sources in the deck's `sources` field:",
+        "These are the sources those facts came from. Put a source in the deck's `sources` field ONLY if you actually used a fact from it. Never cite a source you did not use — if you wrote from your own knowledge, leave `sources` empty.",
         ...opts.sources.map((s) => `- ${s.title} — ${s.url}`),
       );
     }
-    lines.push("", "Write the deck now. Do not claim to have searched; use only the facts above and your general knowledge for phrasing.");
+    lines.push("", "Write the deck now. Do not claim to have searched; use the facts above where they fit and your own knowledge for the rest.");
     return lines.join("\n");
   }
   if (input.research) {
