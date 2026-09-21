@@ -160,8 +160,11 @@ export function makeOpenAIWriter(config: WriterConfig): Writer {
       const { deck, issues } = normalizeDeck(parsed.data, { handle: input.handle ?? "", topic: input.topic });
       deck.engineKind = "openai";
       deck.engine = config.label;
-      // These models don't search, so surface the sources we grounded them on.
-      if (research?.sources.length && deck.sources.length === 0) deck.sources = research.sources;
+      // Cite ONLY the sources the model itself referenced. Keyless research is
+      // handed to the model as optional grounding, but for common topics it
+      // writes from its own knowledge and ignores those facts — so attaching the
+      // fetched sources would be a false citation (e.g. crediting "Porphyria" on
+      // an intermittent-fasting deck). Honesty over coverage.
       if (input.researchSource) deck.researchSource = input.researchSource;
       return { deck, issues };
     },

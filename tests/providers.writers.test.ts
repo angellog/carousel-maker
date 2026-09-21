@@ -91,24 +91,44 @@ describe("openai writer", () => {
     expect(res!.deck.topic).toBe("Photosynthesis");
   });
 
-  it("grounds the prompt on researched facts and carries the sources", async () => {
+  it("grounds the prompt on researched facts but cites only the model's own sources", async () => {
+    // The model is grounded on the facts, and it may cite its own sources — but
+    // the fetched research sources are NOT auto-attached, so an irrelevant
+    // keyless hit can never become a false citation on the deck.
+    const modelDeck = { ...DECK, sources: [{ title: "Photosynthesis", url: "https://en.wikipedia.org/wiki/Photosynthesis" }] };
     let sentBody = "";
     const fetchImpl = vi.fn(async (_url: string, init: RequestInit) => {
       sentBody = String(init.body);
       return jsonResponse({
-        choices: [{ message: { tool_calls: [{ function: { name: "submit_deck", arguments: JSON.stringify(DECK) } }] } }],
+        choices: [{ message: { tool_calls: [{ function: { name: "submit_deck", arguments: JSON.stringify(modelDeck) } }] } }],
       });
     }) as unknown as typeof fetch;
     const research = {
       lead: "Plants convert light to chemical energy.",
       facts: ["Photosynthesis releases oxygen as a byproduct.", "Chlorophyll absorbs red and blue light."],
-      sources: [{ title: "Photosynthesis", url: "https://en.wikipedia.org/wiki/Photosynthesis" }],
+      sources: [{ title: "Giant oarfish", url: "https://en.wikipedia.org/wiki/Giant_oarfish" }],
       descriptions: [],
     };
     const { context } = ctx({ fetchImpl, research, input: { topic: "Photosynthesis", slideCount: 6, presetId: "keynote", research: true } });
     const res = await makeOpenAIWriter(OSS_CONFIG).write(context);
-    expect(sentBody).toContain("releases oxygen");
-    expect(res!.deck.sources).toEqual(research.sources);
+    expect(sentBody).toContain("releases oxygen"); // grounded on the facts
+    expect(res!.deck.sources).toEqual(modelDeck.sources); // the model's own citation
+    expect(res!.deck.sources.map((s) => s.title)).not.toContain("Giant oarfish"); // no false citation
+  });
+
+  it("adds no sources when the model cites none (never fabricates citations)", async () => {
+    const fetchImpl = vi.fn(async () =>
+      jsonResponse({ choices: [{ message: { tool_calls: [{ function: { name: "submit_deck", arguments: JSON.stringify(DECK) } }] } }] }),
+    ) as unknown as typeof fetch;
+    const research = {
+      lead: "x",
+      facts: ["a fact"],
+      sources: [{ title: "Porphyria", url: "https://en.wikipedia.org/wiki/Porphyria" }],
+      descriptions: [],
+    };
+    const { context } = ctx({ fetchImpl, research, input: { topic: "Intermittent fasting", slideCount: 6, presetId: "keynote", research: true } });
+    const res = await makeOpenAIWriter(OSS_CONFIG).write(context);
+    expect(res!.deck.sources).toEqual([]);
   });
 
   it("returns null and emits a helpful notice on an auth error", async () => {
