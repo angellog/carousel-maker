@@ -96,9 +96,12 @@ export function makeOpenAIWriter(config: WriterConfig): Writer {
         tool_choice: "auto",
       };
 
-      let data: ChatResponse;
-      try {
-        const res = await fetchImpl(`${base}/chat/completions`, {
+      // Hosts hiccup: a transient 429/5xx — and, seen in practice on Groq, an
+      // occasional 400 under load — should not drop the user to the offline
+      // draft. Retry a couple of times with a short backoff before giving up.
+      const transient = (status: number) => status === 429 || status === 400 || status >= 500;
+      const doFetch = () =>
+        fetchImpl(`${base}/chat/completions`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -107,14 +110,35 @@ export function makeOpenAIWriter(config: WriterConfig): Writer {
           body: JSON.stringify(body),
           signal: ctx.signal,
         });
-        if (!res.ok) {
-          const detail = await res.text().catch(() => "");
-          emit({ type: "notice", message: openaiError(res.status, detail, config.label) });
+
+      let data: ChatResponse;
+      let res: Response;
+      const MAX_ATTEMPTS = 3;
+      for (let attempt = 1; ; attempt++) {
+        try {
+          res = await doFetch();
+        } catch (err) {
+          if (ctx.signal?.aborted) return null;
+          if (attempt < MAX_ATTEMPTS) {
+            await new Promise((r) => setTimeout(r, 500 * attempt));
+            continue;
+          }
+          emit({ type: "notice", message: `Couldn't reach ${config.label} (${err instanceof Error ? err.message : "network error"}); used the built-in draft instead.` });
           return null;
         }
+        if (res.ok) break;
+        if (attempt < MAX_ATTEMPTS && transient(res.status) && !ctx.signal?.aborted) {
+          await new Promise((r) => setTimeout(r, 500 * attempt));
+          continue;
+        }
+        const detail = await res.text().catch(() => "");
+        emit({ type: "notice", message: openaiError(res.status, detail, config.label) });
+        return null;
+      }
+      try {
         data = (await res.json()) as ChatResponse;
-      } catch (err) {
-        emit({ type: "notice", message: `Couldn't reach ${config.label} (${err instanceof Error ? err.message : "network error"}); used the built-in draft instead.` });
+      } catch {
+        emit({ type: "notice", message: `${config.label} sent an unreadable response, so the built-in draft was used.` });
         return null;
       }
 
