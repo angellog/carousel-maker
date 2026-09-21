@@ -192,8 +192,13 @@ export async function researchTopic(
     const distinctive = tokens.filter((t) => !titleTokens.has(t));
     const bar = distinctive.length > 0 ? distinctive : tokens;
     const onTopic = (s: string) => {
-      if (bar.length === 0) return true;
       const low = s.toLowerCase();
+      // A related article earns a sentence only if it names the subject (the
+      // head noun). One shared common word ("intermittent") is not enough —
+      // that's how Porphyria and Giant oarfish were cited for "intermittent
+      // fasting". Fall back to any distinctive token only when there's no head.
+      if (head) return low.includes(stem(head));
+      if (bar.length === 0) return true;
       return bar.some((t) => low.includes(t));
     };
     let kept = 0;
