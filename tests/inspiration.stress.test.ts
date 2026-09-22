@@ -4,7 +4,8 @@ import { PRESETS, getPreset } from "@/lib/presets";
 import { makeCtx } from "@/lib/render/ctx";
 import { metricMeasurer } from "@/lib/render/text";
 import type { Node, Scene } from "@/lib/render/scene";
-import { FONT_FALLBACKS, PALETTE_BY_ID, type FontSet, type Palette } from "@/lib/theme";
+import { FONT_FALLBACKS, PALETTE_BY_ID, type FontSet } from "@/lib/theme";
+import type { Palette } from "@/lib/types";
 import { writeOfflineDeck } from "@/lib/content/offline";
 import type { Deck } from "@/lib/types";
 

@@ -284,6 +284,20 @@ canvas.slide {
   border-color: transparent;
 }
 
+/* Secondary-prominent: a tinted brand fill for the #2 action, so the two
+   primary functional buttons both read clearly without competing with the
+   solid primary. */
+.btn-brand {
+  background: var(--color-brand-wash);
+  border-color: var(--color-brand);
+  color: var(--color-brand-strong);
+  font-weight: 600;
+}
+.btn-brand:hover:not(:disabled) {
+  background: color-mix(in oklch, var(--color-brand) 22%, transparent);
+  border-color: var(--color-brand);
+}
+
 .btn-sm {
   min-height: 38px;
   padding: 6px 14px;

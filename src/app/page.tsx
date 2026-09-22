@@ -602,13 +602,16 @@ export default function Page() {
             </button>
           ) : (
             <>
+              {/* The two primary functional actions read clearly and equally:
+                  AI-write ("Make it great") and generate-with-my-settings
+                  ("My picks"). "Open" is a utility, so it recedes. */}
               <button className="btn btn-primary flex-1" onClick={makeItGreat} disabled={!topic.trim()}>
                 <span aria-hidden>✦</span> Make it great
               </button>
-              <button className="btn" onClick={() => void generate()} disabled={!topic.trim()} aria-label="Make with my picks">
+              <button className="btn btn-brand flex-1" onClick={() => void generate()} disabled={!topic.trim()} aria-label="Make with my picks">
                 My picks
               </button>
-              <button className="btn" onClick={() => fileRef.current?.click()} aria-label="Open a saved project">
+              <button className="btn btn-ghost" onClick={() => fileRef.current?.click()} aria-label="Open a saved project">
                 Open
               </button>
             </>
@@ -765,10 +768,11 @@ export default function Page() {
         <button className="btn btn-sm" onClick={() => setSheet("style")}>Style</button>
       </header>
 
-      {deck.engine && deck.engineKind !== "template" && (
+      {/* The writer model/provider is intentionally never surfaced to end users.
+          We keep only the useful note that research sources ship with the export. */}
+      {deck.engineKind !== "template" && deck.sources.length > 0 && (
         <p className="mx-4 mt-3 text-[11px] text-[var(--color-dim)]">
-          Written by <strong className="text-[var(--color-text)]">{deck.engine}</strong>
-          {deck.sources.length > 0 ? " · sources saved with the download" : ""}
+          Sources saved with the download
         </p>
       )}
       {deck.offline && (

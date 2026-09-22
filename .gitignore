@@ -1,8 +1,10 @@
 node_modules
 .next
 out
-.env.local
-.env.production
+.env
+.env.*
+!.env.example
+!.env.production.example
 *.tsbuildinfo
 next-env.d.ts
 samples
