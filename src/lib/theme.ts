@@ -273,6 +273,17 @@ export const PALETTES: Palette[] = [
     surface: "#161618",
     line: "#2a2a2d",
   }),
+  pal({
+    id: "whiteboard",
+    name: "Whiteboard",
+    bg: "#fbfbf9",
+    fg: "#14181f",
+    muted: "#6b7280",
+    accent: "#16a34a",
+    accent2: "#0f766e",
+    surface: "#ffffff",
+    line: "#e6e7e2",
+  }),
 ];
 
 export const PALETTE_BY_ID = new Map(PALETTES.map((p) => [p.id, p]));
