@@ -16,27 +16,35 @@
 
 import { PRESETS } from "./presets";
 
-export type PlanId = "free" | "pro";
+export type PlanId = "free" | "starter" | "pro" | "lifetime";
 
 export type Feature =
+  /** Manual control of the look: pick any template, palette, voice and type
+      scale — versus the free tier's Art Director auto-pick only. */
+  | "customize"
   /** Upload a screenshot / paste a link → matched look (pure canvas math). */
   | "inspiration"
   /** The deeper keyless web-research tier by default (Wikipedia + DuckDuckGo). */
   | "hostedResearch"
   /** Save a reusable brand kit: palette, handle, default voice. */
   | "brandKit"
-  /** No daily generation cap. */
+  /** No generation cap. */
   | "unlimited"
   /** Drop the small "made with Carousel Maker" line from the caption. */
   | "noAttribution";
 
-export type QuotaPeriod = "day" | "week";
+export type QuotaPeriod = "day" | "week" | "month" | "lifetime";
+
+/** How a plan is billed — drives the price display and the checkout path. */
+export type Cadence = "free" | "month" | "once";
 
 export interface PlanDef {
   id: PlanId;
   name: string;
-  /** Display price; the number is informational, billing lives elsewhere. */
+  /** Display price; billing lives in Flutterwave (see docs/launch-readiness.md). */
   price: string;
+  /** "free" · "month" (subscription) · "once" (one-time, e.g. Lifetime). */
+  cadence: Cadence;
   tagline: string;
   /** Generations allowed per `quotaPeriod`. Infinity for unlimited. */
   quota: number;
@@ -47,10 +55,15 @@ export interface PlanDef {
   perks: string[];
 }
 
-export const FREE_WEEKLY_QUOTA = 2;
+/** Free is a genuine trial: two great carousels, ever (never resets). */
+export const FREE_LIFETIME_QUOTA = 2;
+/** Starter's monthly allowance. */
+export const STARTER_MONTHLY_QUOTA = 30;
 
 const FREE_FEATURES: Feature[] = [];
+const STARTER_FEATURES: Feature[] = ["customize", "hostedResearch", "noAttribution"];
 const PRO_FEATURES: Feature[] = [
+  "customize",
   "inspiration",
   "hostedResearch",
   "brandKit",
@@ -63,38 +76,68 @@ export const PLANS: Record<PlanId, PlanDef> = {
     id: "free",
     name: "Free",
     price: "$0",
-    tagline: "Everything you need to post a great carousel.",
-    quota: FREE_WEEKLY_QUOTA,
-    quotaPeriod: "week",
+    cadence: "free",
+    tagline: "Try it — two carousels, on the house.",
+    quota: FREE_LIFETIME_QUOTA,
+    quotaPeriod: "lifetime",
     features: new Set(FREE_FEATURES),
     perks: [
-      `All ${PRESETS.length} templates`,
-      "All 5 writer voices",
-      "Art Director auto-pick",
-      "Keyless research, or bring your own key",
-      `${FREE_WEEKLY_QUOTA} carousels a week`,
+      `${FREE_LIFETIME_QUOTA} carousels to try (lifetime)`,
+      "Art Director auto-picks your look",
       "Full-resolution 4:5 export, no watermark",
+    ],
+  },
+  starter: {
+    id: "starter",
+    name: "Starter",
+    price: "$5/mo",
+    cadence: "month",
+    tagline: "Make it yours, on a budget.",
+    quota: STARTER_MONTHLY_QUOTA,
+    quotaPeriod: "month",
+    features: new Set(STARTER_FEATURES),
+    perks: [
+      `${STARTER_MONTHLY_QUOTA} carousels a month`,
+      `Full customization: any of ${PRESETS.length} templates, palettes & voices`,
+      "Deeper web research, no key needed",
+      "No attribution line",
     ],
   },
   pro: {
     id: "pro",
     name: "Pro",
-    price: "$8/mo",
+    price: "$19/mo",
+    cadence: "month",
     tagline: "For creators who post on a schedule.",
     quota: Infinity,
-    quotaPeriod: "week",
+    quotaPeriod: "month",
     features: new Set(PRO_FEATURES),
     perks: [
       "Unlimited carousels",
+      "Everything in Starter",
       "Inspiration: match any look you love",
-      "Deeper web research, no key needed",
       "Brand Kit: your palette, handle & voice saved",
-      "No attribution line",
+    ],
+  },
+  lifetime: {
+    id: "lifetime",
+    name: "Lifetime",
+    price: "$59 once",
+    cadence: "once",
+    tagline: "All of Pro, forever — one payment.",
+    quota: Infinity,
+    quotaPeriod: "lifetime",
+    features: new Set(PRO_FEATURES),
+    perks: [
+      "Everything in Pro, forever",
+      "One payment — no subscription",
+      "Unlimited carousels",
+      "All future templates & features",
     ],
   },
 };
 
-export const PLAN_ORDER: PlanId[] = ["free", "pro"];
+export const PLAN_ORDER: PlanId[] = ["free", "starter", "pro", "lifetime"];
 
 export function getPlan(id: string | undefined): PlanDef {
   return PLANS[(id ?? "free") as PlanId] ?? PLANS.free;
@@ -136,6 +179,8 @@ export function quotaState(plan: string | undefined, usedInPeriod: number): Quot
 /** The single feature that most motivates an upgrade from a given context. */
 export function upsellFor(feature: Feature): string {
   switch (feature) {
+    case "customize":
+      return "Choose your own template, palette and voice — upgrade to customize every deck.";
     case "inspiration":
       return "Match any carousel look you love — Pro reads its palette and layout and matches it.";
     case "hostedResearch":

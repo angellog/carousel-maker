@@ -1,31 +1,66 @@
 import { describe, expect, it } from "vitest";
 import {
   PLANS,
+  PLAN_ORDER,
   can,
   quotaLimit,
   quotaPeriod,
   quotaState,
   getPlan,
   upsellFor,
-  FREE_WEEKLY_QUOTA,
+  FREE_LIFETIME_QUOTA,
+  STARTER_MONTHLY_QUOTA,
+  type Feature,
 } from "@/lib/plan";
 
+const ALL_FEATURES: Feature[] = [
+  "customize",
+  "inspiration",
+  "hostedResearch",
+  "brandKit",
+  "unlimited",
+  "noAttribution",
+];
+
 describe("plans & entitlements", () => {
-  it("free is genuinely usable: templates/voices/art-director, capped runs, no watermark", () => {
-    // Free grants none of the paid features, but the quota is real and finite.
-    expect(quotaLimit("free")).toBe(FREE_WEEKLY_QUOTA);
-    expect(quotaPeriod("free")).toBe("week");
+  it("ships the four decided tiers in order", () => {
+    expect(PLAN_ORDER).toEqual(["free", "starter", "pro", "lifetime"]);
+    expect(PLANS.free.price).toBe("$0");
+    expect(PLANS.starter.price).toBe("$5/mo");
+    expect(PLANS.pro.price).toBe("$19/mo");
+    expect(PLANS.lifetime.price).toBe("$59 once");
+    expect(PLANS.lifetime.cadence).toBe("once");
+  });
+
+  it("free is a real 2-carousel lifetime trial with no customization, no watermark", () => {
+    expect(quotaLimit("free")).toBe(FREE_LIFETIME_QUOTA);
+    expect(quotaPeriod("free")).toBe("lifetime");
+    expect(can("free", "customize")).toBe(false);
     expect(can("free", "inspiration")).toBe(false);
     expect(can("free", "unlimited")).toBe(false);
-    // Perks copy promises no watermark (quality is never the paywall).
     expect(PLANS.free.perks.join(" ").toLowerCase()).toContain("no watermark");
   });
 
-  it("pro unlocks the magic and removes the cap", () => {
-    expect(quotaLimit("pro")).toBe(Infinity);
-    for (const f of ["inspiration", "hostedResearch", "brandKit", "unlimited", "noAttribution"] as const) {
-      expect(can("pro", f)).toBe(true);
+  it("starter is limited-but-customizable: monthly cap, customize + research + no-attribution, no Pro magic", () => {
+    expect(quotaLimit("starter")).toBe(STARTER_MONTHLY_QUOTA);
+    expect(quotaPeriod("starter")).toBe("month");
+    for (const f of ["customize", "hostedResearch", "noAttribution"] as const) {
+      expect(can("starter", f), f).toBe(true);
     }
+    for (const f of ["inspiration", "brandKit", "unlimited"] as const) {
+      expect(can("starter", f), f).toBe(false);
+    }
+  });
+
+  it("pro unlocks everything and removes the cap", () => {
+    expect(quotaLimit("pro")).toBe(Infinity);
+    for (const f of ALL_FEATURES) expect(can("pro", f), f).toBe(true);
+  });
+
+  it("lifetime grants the same entitlements as pro, unlimited, one-time", () => {
+    expect(quotaLimit("lifetime")).toBe(Infinity);
+    for (const f of ALL_FEATURES) expect(can("lifetime", f), f).toBe(true);
+    expect(quotaState("lifetime", 999).blocked).toBe(false);
   });
 
   it("unknown/undefined plan falls back to free", () => {
@@ -34,18 +69,17 @@ describe("plans & entitlements", () => {
     expect(can(undefined, "inspiration")).toBe(false);
   });
 
-  it("quota math blocks free at the cap and never blocks pro", () => {
+  it("quota math blocks free at its lifetime cap and never blocks unlimited plans", () => {
     const fresh = quotaState("free", 0);
-    expect(fresh.remaining).toBe(FREE_WEEKLY_QUOTA);
+    expect(fresh.remaining).toBe(FREE_LIFETIME_QUOTA);
     expect(fresh.blocked).toBe(false);
 
-    const spent = quotaState("free", FREE_WEEKLY_QUOTA);
+    const spent = quotaState("free", FREE_LIFETIME_QUOTA);
     expect(spent.remaining).toBe(0);
     expect(spent.blocked).toBe(true);
 
-    const over = quotaState("free", 999);
-    expect(over.remaining).toBe(0);
-    expect(over.blocked).toBe(true);
+    const starterOverCap = quotaState("starter", STARTER_MONTHLY_QUOTA + 5);
+    expect(starterOverCap.blocked).toBe(true);
 
     const pro = quotaState("pro", 999);
     expect(pro.unlimited).toBe(true);
@@ -53,8 +87,6 @@ describe("plans & entitlements", () => {
   });
 
   it("every feature has upsell copy", () => {
-    for (const f of ["inspiration", "hostedResearch", "brandKit", "unlimited", "noAttribution"] as const) {
-      expect(upsellFor(f).length).toBeGreaterThan(10);
-    }
+    for (const f of ALL_FEATURES) expect(upsellFor(f).length).toBeGreaterThan(10);
   });
 });

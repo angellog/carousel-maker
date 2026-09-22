@@ -68,6 +68,23 @@ and the server-side security fix both need anyway.
 
 ---
 
+## 💠 Pricing tiers (decided 2026-09-23 — defined in `src/lib/plan.ts`)
+
+| Entitlement | Free $0 | Starter $5/mo | Pro $19/mo | Lifetime $59 once |
+|---|:--:|:--:|:--:|:--:|
+| Carousels | **2 lifetime** | 30 / month | ♾️ | ♾️ |
+| Customize (template/palette/voice) | ❌ | ✅ | ✅ | ✅ |
+| Hosted web research | ❌ | ✅ | ✅ | ✅ |
+| No attribution line | ❌ | ✅ | ✅ | ✅ |
+| Inspiration (Match a look) | ❌ | ❌ | ✅ | ✅ |
+| Brand Kit | ❌ | ❌ | ✅ | ✅ |
+
+Free = a real 2-carousel trial on Art Director auto-pick. Starter = "make it
+yours," capped. Pro = unlimited + power features. Lifetime = Pro forever, one
+payment. `plan.ts` is the source of truth; Flutterwave maps price IDs to these.
+The new `customize` entitlement is defined but **not yet UI-enforced** — that
+gating pairs with the server-side enforcement in the billing build.
+
 ## 💳 Track 5 — Flutterwave billing architecture
 
 Flutterwave is the processor. It sits on top of the accounts layer above.

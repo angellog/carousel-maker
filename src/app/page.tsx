@@ -28,7 +28,7 @@ import {
 } from "@/lib/export";
 import { missingFields } from "@/lib/content/schema";
 import { getPreset, PRESETS } from "@/lib/presets";
-import { can, quotaState, type PlanId, type Feature } from "@/lib/plan";
+import { PLANS, can, quotaPeriod, quotaState, type PlanId, type QuotaPeriod, type Feature } from "@/lib/plan";
 import { PALETTE_BY_ID } from "@/lib/theme";
 import type { Deck, Slide } from "@/lib/types";
 
@@ -47,8 +47,16 @@ const FEATURED = ["swiss", "teardown", "lecture", "notebook", "stickerpop", "man
 
 /* ------------------------- local persistence ------------------------- */
 
-/** ISO-week key (e.g. "2026-W38") — the free quota resets weekly. */
-function periodKey(d = new Date()): string {
+/** A usage-bucket key for a plan's quota period. "lifetime" never resets;
+ *  "month" resets monthly; "week" is ISO-week; "day" is the calendar day.
+ *  (Client-side hint only — real enforcement moves server-side with accounts.) */
+function periodKey(period: QuotaPeriod, d = new Date()): string {
+  if (period === "lifetime") return "lifetime";
+  const y = d.getUTCFullYear();
+  if (period === "month") return `${y}-M${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+  if (period === "day") {
+    return `${y}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+  }
   const dt = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
   const day = dt.getUTCDay() || 7;
   dt.setUTCDate(dt.getUTCDate() + 4 - day);
@@ -58,15 +66,16 @@ function periodKey(d = new Date()): string {
 }
 function loadPlan(): PlanId {
   try {
-    return localStorage.getItem("cm-plan") === "pro" ? "pro" : "free";
+    const v = localStorage.getItem("cm-plan");
+    return v && v in PLANS ? (v as PlanId) : "free";
   } catch {
     return "free";
   }
 }
-function loadUsage(): number {
+function loadUsage(plan: PlanId): number {
   try {
     const raw = JSON.parse(localStorage.getItem("cm-usage") || "{}") as { key?: string; n?: number };
-    return raw.key === periodKey() ? raw.n ?? 0 : 0;
+    return raw.key === periodKey(quotaPeriod(plan)) ? raw.n ?? 0 : 0;
   } catch {
     return 0;
   }
@@ -108,7 +117,7 @@ export default function Page() {
     setApiKey(loadStoredKey());
     const p = loadPlan();
     setPlan(p);
-    setUsage(loadUsage());
+    setUsage(loadUsage(p));
     // Pro: apply a saved Brand Kit as the defaults for this session.
     if (p === "pro") {
       const b = loadBrand();
@@ -176,13 +185,16 @@ export default function Page() {
     setUsage((n) => {
       const next = n + 1;
       try {
-        localStorage.setItem("cm-usage", JSON.stringify({ key: periodKey(), n: next }));
+        localStorage.setItem(
+          "cm-usage",
+          JSON.stringify({ key: periodKey(quotaPeriod(plan)), n: next }),
+        );
       } catch {
         /* ignore */
       }
       return next;
     });
-  }, []);
+  }, [plan]);
 
   const setPro = (on: boolean) => {
     setPlan(on ? "pro" : "free");
@@ -557,9 +569,10 @@ export default function Page() {
             </button>
           </div>
 
-          {!isPro && (
+          {!quota.unlimited && (
             <p className="px-4 pt-3 text-[12px] text-[var(--color-dim)]">
-              {quota.remaining} of {quota.limit} free carousels left this week.
+              {quota.remaining} of {quota.limit} carousels left
+              {quotaPeriod(plan) === "month" ? " this month" : quotaPeriod(plan) === "week" ? " this week" : ""}.
             </p>
           )}
 

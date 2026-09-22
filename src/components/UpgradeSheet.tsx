@@ -1,7 +1,7 @@
 "use client";
 
 import Sheet from "./Sheet";
-import { PLANS, upsellFor, type Feature, type PlanId } from "@/lib/plan";
+import { PLANS, PLAN_ORDER, upsellFor, type Feature, type PlanId } from "@/lib/plan";
 
 interface Props {
   open: boolean;
@@ -15,44 +15,49 @@ interface Props {
 }
 
 export default function UpgradeSheet({ open, onClose, context, plan, onUnlock, onDowngrade }: Props) {
-  const pro = PLANS.pro;
-  const free = PLANS.free;
-  const isPro = plan === "pro";
+  const isPaid = plan !== "free";
+  const current = PLANS[plan] ?? PLANS.free;
 
   return (
-    <Sheet open={open} title={isPro ? "You're on Pro" : "Upgrade to Pro"} onClose={onClose}>
+    <Sheet open={open} title={isPaid ? `You're on ${current.name}` : "Choose your plan"} onClose={onClose}>
       <div className="flex flex-col gap-4 pb-1">
-        {context && !isPro && (
+        {context && !isPaid && (
           <p className="rounded-[var(--r-md)] bg-[var(--color-brand-wash)] px-3 py-2.5 text-sm text-[var(--color-text)]">
             {upsellFor(context)}
           </p>
         )}
 
         <div className="grid grid-cols-1 gap-3">
-          <PlanCard
-            title={pro.name}
-            price={pro.price}
-            tagline={pro.tagline}
-            perks={pro.perks}
-            highlight
-          />
-          <PlanCard title={free.name} price={free.price} tagline={free.tagline} perks={free.perks} />
+          {PLAN_ORDER.map((id) => {
+            const p = PLANS[id];
+            return (
+              <PlanCard
+                key={id}
+                title={p.name}
+                price={p.price}
+                tagline={p.tagline}
+                perks={p.perks}
+                highlight={id === "pro"}
+                current={id === plan}
+              />
+            );
+          })}
         </div>
 
-        {isPro ? (
+        {isPaid ? (
           <button className="btn w-full" onClick={onDowngrade}>
             Switch back to Free
           </button>
         ) : (
           <button className="btn btn-primary w-full" onClick={onUnlock}>
-            Start Pro
+            Try Pro on this device
           </button>
         )}
 
         <p className="text-[11px] leading-relaxed text-[var(--color-dim)]">
-          {isPro
-            ? "Pro is active on this device."
-            : "Billing isn't connected in this build, so Start Pro unlocks everything on this device so you can try it. See docs/PRODUCT.md for wiring Stripe + accounts."}
+          {isPaid
+            ? `${current.name} is active on this device.`
+            : "Paid checkout (Flutterwave) isn't live yet — this unlocks Pro on this device so you can try everything. See docs/launch-readiness.md."}
         </p>
       </div>
     </Sheet>
@@ -65,22 +70,31 @@ function PlanCard({
   tagline,
   perks,
   highlight,
+  current,
 }: {
   title: string;
   price: string;
   tagline: string;
   perks: string[];
   highlight?: boolean;
+  current?: boolean;
 }) {
   return (
     <div
       className="card p-4"
-      style={highlight ? { borderColor: "var(--color-brand)", boxShadow: "var(--shadow-2)" } : undefined}
+      style={
+        current
+          ? { borderColor: "var(--color-brand-strong)", boxShadow: "var(--shadow-2)" }
+          : highlight
+            ? { borderColor: "var(--color-brand)", boxShadow: "var(--shadow-2)" }
+            : undefined
+      }
     >
       <div className="flex items-baseline justify-between">
         <span className="flex items-center gap-2 text-base font-semibold">
           {title}
-          {highlight && <span className="badge badge-pro">PRO</span>}
+          {highlight && <span className="badge badge-pro">POPULAR</span>}
+          {current && <span className="badge">Current</span>}
         </span>
         <span className="tnum text-sm text-[var(--color-dim)]">{price}</span>
       </div>
