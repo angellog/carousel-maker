@@ -340,6 +340,20 @@ function detectOverview(hay: string): boolean {
   ]);
 }
 
+/** A money/business playbook — the rust-on-cream Teardown template's home. */
+function detectMoney(hay: string): boolean {
+  return (
+    /\$\s?\d/.test(hay) ||
+    anyMatch(hay, [
+      "make money", "made money", "side hustle", "side-hustle", "monetize", "monetise",
+      "first client", "first customers", "get clients", "land clients", "freelance",
+      "dropship", "ecommerce", "e-commerce", "cash flow", "cashflow", "profit",
+      "6-figure", "six-figure", "7-figure", "seven-figure", "financial freedom",
+      "business from scratch", "1 million", "sales funnel", "charge more", "your rates",
+    ])
+  );
+}
+
 /* ---------------------------------- voice --------------------------------- */
 
 interface VoicePick {
@@ -406,6 +420,8 @@ function formatReason(format: DeckFormat, preset: Preset): string {
       return "A reference style list, so the Spec Sheet template fits.";
     case "swiss":
       return "Built around one headline number, so the Swiss template makes it the hero.";
+    case "teardown":
+      return "A money and business playbook, so the Teardown template fits.";
     default:
       return `${FORMAT_LABEL[format]} topic, so the ${preset.name} template fits.`;
   }
@@ -459,6 +475,7 @@ export function directDeck(input: DirectorInput): ArtDirection {
   if (detectReference(hay)) presetId = "spec";
   if (detectOverview(hay)) presetId = "roadmap";
   if (playful) presetId = "arcade";
+  if (detectMoney(hay)) presetId = "teardown";
 
   const preset = safePreset(presetId);
   const [lo, hi] = preset.slideRange;

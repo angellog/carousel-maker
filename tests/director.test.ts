@@ -124,6 +124,12 @@ describe("directDeck template selection", () => {
     expectValid(d);
   });
 
+  it("routes a money/business playbook to the Teardown template", () => {
+    const d = directDeck({ topic: "How I built a $10k/month AI agency from scratch" });
+    expect(d.presetId).toBe("teardown");
+    expectValid(d);
+  });
+
   it("routes an overview to the Roadmap template", () => {
     const d = directDeck({ topic: "Course overview: what to expect" });
     expect(d.presetId).toBe("roadmap");

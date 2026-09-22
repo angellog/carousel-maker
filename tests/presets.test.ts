@@ -80,7 +80,7 @@ function deckFor(presetId: string): Deck {
 
 describe("preset registry", () => {
   it("ships the full curated set of presets", () => {
-    expect(PRESETS).toHaveLength(30);
+    expect(PRESETS).toHaveLength(31);
   });
 
   it("has unique ids", () => {

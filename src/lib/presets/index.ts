@@ -5,10 +5,11 @@ import { VIVID_PRESETS } from "./vivid";
 import { PRESS_PRESETS } from "./press";
 import { FUN_PRESETS } from "./fun";
 import { ILLUSTRATED_PRESETS } from "./illustrated";
+import { teardown } from "./teardown";
 import type { Preset } from "./types";
 
 /**
- * The shipped templates — 30 distinct design systems, each drawn entirely from
+ * The shipped templates — 31 distinct design systems, each drawn entirely from
  * vectors, type and canvas decor (no image models). Grouped by family:
  *
  *   premium      → swiss, magazine, whitepaper, manifesto   (editorial / statement)
@@ -19,6 +20,7 @@ import type { Preset } from "./types";
  *   fun          → memo, arcade, polaroid, doodle             (playful)
  *   illustrated  → notebook, editorial, stickerpop, infographic, storyboard, scrapbook
  *                                                            (hand-drawn / illustrative)
+ *   teardown     → rust-on-cream money/business playbook (color-pop + real-UI heroes)
  *
  * PRESETS[0] is the safe fallback for an unknown id, so it leads with a clean,
  * universal template. The Art Director (`src/lib/director`) maps each content
@@ -32,6 +34,7 @@ export const PRESETS: Preset[] = [
   ...PRESS_PRESETS,
   ...FUN_PRESETS,
   ...ILLUSTRATED_PRESETS,
+  teardown,
 ];
 
 export const PRESET_BY_ID = new Map(PRESETS.map((p) => [p.id, p]));
