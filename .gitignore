@@ -8,3 +8,4 @@ next-env.d.ts
 samples
 brag-output/composition/snapshots
 quote-posts/output
+output/
