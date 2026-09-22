@@ -41,7 +41,7 @@ interface LogLine {
 
 const TONES = ["Direct and practical", "Warm and personal", "Contrarian", "Analytical", "Playful"];
 /** The rail on the home screen — a spread of looks, not all 12. */
-const FEATURED = ["swiss", "manifesto", "blueprint", "magazine", "versus", "roadmap", "aurora", "brutalist", "serifzine", "arcade"];
+const FEATURED = ["swiss", "notebook", "stickerpop", "manifesto", "storyboard", "editorial", "versus", "infographic", "scrapbook", "magazine", "roadmap", "arcade"];
 
 /* ------------------------- local persistence ------------------------- */
 
