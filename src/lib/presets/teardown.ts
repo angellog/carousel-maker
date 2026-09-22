@@ -90,6 +90,72 @@ function appTile(c: Ctx, cx: number, cy: number, size: number, accent: string): 
   return out;
 }
 
+/** A chat mockup inside a white card with a messenger-style header bar. */
+function chatHero(c: Ctx, s: ShellStyle, region: Box, accent: string, ink: string): Node[] | null {
+  const turns = c.slide.chat;
+  if (!turns || turns.length === 0) return null;
+  const pad = 24;
+  const headerH = 64;
+  const inner: Box = { x: region.x + 14, y: region.y + pad + headerH, w: region.w - 28, h: region.h - pad * 2 - headerH };
+  if (inner.h < 60) return null;
+  const chat = chatPart(c, s, inner, { mine: "#d9fdd3", mineText: "#0b2e13", theirs: mix(c.pal.bg, "#ffffff", 0.55), theirsText: ink });
+  if (!chat) return null;
+  const cx = region.x - 6;
+  const cy = region.y - 4;
+  const cw = region.w + 12;
+  const cardH = Math.min(region.h, headerH + chat.h + pad * 2);
+  const out: Node[] = [
+    D.card(c, cx, cy, cw, cardH, { fill: c.pal.surface, radius: 24, shadow: true }),
+    { kind: "rect", x: cx, y: cy, w: cw, h: headerH, r: [24, 24, 0, 0], fill: mix(c.pal.surface, ink, 0.05) },
+    { kind: "ellipse", cx: cx + 42, cy: cy + headerH / 2, rx: 17, ry: 17, fill: mix(accent, "#ffffff", 0.15) },
+    fixedBlock(c, "Assistant", { x: cx + 72, y: cy + 12, w: cw - 140, size: 24, font: c.fonts.sans, weight: 700, color: ink, marks: {} }).node,
+    fixedBlock(c, "online · replies in seconds", { x: cx + 72, y: cy + 38, w: cw - 140, size: 17, font: c.fonts.sans, weight: 500, color: c.pal.muted, marks: {} }).node,
+    { kind: "ellipse", cx: cx + cw - 34, cy: cy + headerH / 2, rx: 7, ry: 7, fill: "#22c55e" },
+  ];
+  out.push(...chat.draw(region.y + pad + headerH));
+  return out;
+}
+
+/** A horizontal equation strip ("10 × $1,000 = $10,000") inside a white card. */
+function equationHero(c: Ctx, region: Box, items: { label: string; value: string }[], accent: string, ink: string): Node[] | null {
+  const n = items.length;
+  const ops = n === 3 ? ["×", "="] : n === 2 ? ["="] : [];
+  if (ops.length === 0) return null;
+  const opW = 56;
+  const cellW = (region.w - opW * ops.length) / n;
+  if (cellW < 90) return null;
+  const pad = 22;
+  const cellH = Math.min(160, region.h - pad * 2);
+  if (cellH < 90) return null;
+  const cardH = Math.min(region.h, cellH + pad * 2);
+  const out: Node[] = [D.card(c, region.x - 6, region.y - 4, region.w + 12, cardH, { fill: c.pal.surface, radius: 24, shadow: true })];
+  let x = region.x;
+  const y = region.y + pad;
+  items.forEach((it, i) => {
+    const hi = i === n - 1;
+    out.push({
+      kind: "rect",
+      x: x + 6,
+      y,
+      w: cellW - 12,
+      h: cellH,
+      r: 16,
+      fill: hi ? withAlpha(accent, 0.14) : withAlpha(ink, 0.05),
+      stroke: hi ? withAlpha(accent, 0.45) : undefined,
+      lineWidth: hi ? 2 : undefined,
+    });
+    const val = it.value || "";
+    const vsize = Math.max(28, Math.min(56, ((cellW - 36) * 0.92) / Math.max(1, val.length) / 0.6));
+    out.push(fixedBlock(c, val, { x: x + 6, y: y + cellH * 0.22, w: cellW - 12, size: vsize, font: c.fonts.sans, weight: 800, color: hi ? accent : ink, align: "center", letterSpacing: -1, marks: {} }).node);
+    out.push(fixedBlock(c, it.label || "", { x: x + 6, y: y + cellH * 0.66, w: cellW - 12, size: 20, font: c.fonts.sans, weight: 500, color: c.pal.muted, align: "center", marks: {} }).node);
+    if (i < n - 1) {
+      out.push(fixedBlock(c, ops[i], { x: x + cellW, y: y + cellH * 0.3, w: opW, size: 42, font: c.fonts.sans, weight: 800, color: accent, align: "center", marks: {} }).node);
+    }
+    x += cellW + opW;
+  });
+  return out;
+}
+
 export const teardown: Preset = {
   id: "teardown",
   name: "Teardown",
@@ -197,23 +263,33 @@ export const teardown: Preset = {
     const region: Box = { x: box.x, y: headBottom, w: box.w, h: box.y + box.h - headBottom };
 
     if (region.h > 120) {
-      const hero =
-        chatPart(c, s, region, { mine: "#d9fdd3", mineText: "#0b2e13", theirs: c.pal.surface, theirsText: ink }) ??
-        statPart(c, s, region, { valueColor: accent }) ??
-        itemsPart(c, s, region) ??
-        stepsPart(c, s, region) ??
-        comparePart(c, s, region) ??
-        bulletsPart(c, s, region);
-      if (hero) {
-        // A white card behind the object, like the reference.
-        const pad = 30;
-        const cardH = Math.min(region.h, hero.h + pad * 2);
-        nodes.push(D.card(c, region.x - 6, region.y - 4, region.w + 12, cardH, { fill: c.pal.surface, radius: 24, shadow: true }));
-        nodes.push(...hero.draw(region.y + pad));
+      // A chat gets a messenger card; two or three items become an equation
+      // strip; other structured fields render in a plain white card; a bare
+      // cover/CTA gets the vector app-tile.
+      const custom =
+        chatHero(c, s, region, accent, ink) ??
+        (c.slide.items && (c.slide.items.length === 2 || c.slide.items.length === 3)
+          ? equationHero(c, region, c.slide.items, accent, ink)
+          : null);
+      if (custom) {
+        nodes.push(...custom);
       } else {
-        // No structured field (cover / CTA): the flat vector app-tile.
-        const size = Math.min(region.w * 0.62, region.h * 0.82, 340);
-        appTile(c, region.x + region.w - size / 2 - 10, region.y + region.h / 2, size, accent).forEach((n) => nodes.push(n));
+        const hero =
+          statPart(c, s, region, { valueColor: accent }) ??
+          itemsPart(c, s, region) ??
+          stepsPart(c, s, region) ??
+          comparePart(c, s, region) ??
+          bulletsPart(c, s, region);
+        if (hero) {
+          const pad = 30;
+          const cardH = Math.min(region.h, hero.h + pad * 2);
+          nodes.push(D.card(c, region.x - 6, region.y - 4, region.w + 12, cardH, { fill: c.pal.surface, radius: 24, shadow: true }));
+          nodes.push(...hero.draw(region.y + pad));
+        } else {
+          // No structured field (cover / CTA): the flat vector app-tile.
+          const size = Math.min(region.w * 0.62, region.h * 0.82, 340);
+          appTile(c, region.x + region.w - size / 2 - 10, region.y + region.h / 2, size, accent).forEach((n) => nodes.push(n));
+        }
       }
     }
 
