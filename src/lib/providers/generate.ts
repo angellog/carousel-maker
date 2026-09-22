@@ -17,7 +17,7 @@ import type { GenerateInput } from "../content/prompt";
 import type { ResearchResult } from "../content/research";
 import type { DeckIssue } from "../content/schema";
 import type { Deck } from "../types";
-import { type Env, pickResearchSource, resolveConfig, type ResolvedConfig } from "./config";
+import { type Env, resolveConfig, type ResolvedConfig } from "./config";
 import { getResearcher } from "./research";
 import { getWriter, templateWriter } from "./writers";
 import type { Emit, ResearchContext } from "./types";
@@ -71,18 +71,16 @@ export async function generateDeck(args: GenerateArgs): Promise<GenerateOutput> 
   if (primary) return { deck: primary.deck, issues: primary.issues, config };
 
   // ---- Fallback: the template writer always produces a renderable deck. ----
-  // If the primary was Claude (which researched itself and we didn't pre-fetch),
-  // gather keyless facts now so the draft is sourced rather than placeholder.
-  let draftResearch = research;
-  if (!draftResearch && input.research) {
-    draftResearch = await runResearch(getResearcher(pickResearchSource(input, env)), input.topic, researchCtx);
-  }
-
+  // When the primary writer fails we produce an honest skeleton rather than
+  // pre-fetching keyless facts. The old fallback pulled Wikipedia/DuckDuckGo
+  // summaries, which slopped conceptual and how-to topics with unrelated
+  // articles — retired here to match the "no garbage or slop" bar. A failed
+  // paid writer now yields a clean draft the user can edit or regenerate.
   const draft = await templateWriter.write({
     input,
     preset,
     slideCount,
-    research: draftResearch,
+    research,
     emit,
     signal,
     fetchImpl,

@@ -87,12 +87,14 @@ describe("generateDeck — OSS writer path", () => {
     expect(out.deck.topic).toBe("Habits");
   });
 
-  it("falls back to a sourced template deck when the OSS endpoint fails", async () => {
+  it("falls back to an honest template draft when the OSS endpoint fails", async () => {
     const out = await run(base, OSS, stub("500"));
-    // The model failed, but the user still gets a real, sourced keyless deck.
+    // The model failed, so the user gets a clean, renderable skeleton to edit —
+    // never Wikipedia/DuckDuckGo slop pulled in as a stand-in for the model.
     expect(out.deck.engineKind).toBe("template");
-    expect(out.deck.enriched).toBe(true);
-    expect(out.deck.sources.length).toBeGreaterThan(0);
+    expect(out.deck.enriched).toBe(false);
+    expect(out.deck.sources.length).toBe(0);
     expect(out.events.some((e) => e.type === "notice" && /built-in draft/i.test(e.message))).toBe(true);
+    expect(out.events.some((e) => e.type === "source")).toBe(false);
   });
 });
