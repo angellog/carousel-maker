@@ -1,4 +1,4 @@
-# Carousel Maker
+# The Carousel Maker
 
 Give it a topic. It researches the web, writes the deck, typesets it, and hands
 you post-ready PNGs — straight into the share sheet on a phone.
@@ -6,7 +6,7 @@ you post-ready PNGs — straight into the share sheet on a phone.
 **Built for a phone.** One column, one primary action per screen, everything
 reachable with a thumb. Swipe through the deck the same way your audience will.
 
-Twenty-four carousel templates across distinct design systems — **all drawn from vectors and type — no image-generation
+Thirty-two carousel templates across distinct design systems — **all drawn from vectors and type — no image-generation
 model is involved anywhere.** Every texture, icon, chart, table, diagram, doodle
 and 3D letter is produced from paths, gradients and procedural noise on a canvas.
 
@@ -160,7 +160,7 @@ src/lib/
     icons.ts            ~35 stroke-drawn icons + keyword→icon mapping
     diagrams.ts         Tables, ranked rows, podiums, layer stacks, mind maps,
                         axes, component graphs, panel grids, bento mosaics
-  presets/            The 24 templates across distinct design systems
+  presets/            The 32 templates across distinct design systems
     _shared.ts          The composition engine every template builds on
     dense.ts            statlist
     clean.ts            compare · datacard

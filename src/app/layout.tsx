@@ -9,6 +9,8 @@ import {
   Space_Grotesk,
 } from "next/font/google";
 import "./globals.css";
+import { BRAND, siteUrl } from "@/lib/brand";
+import { PRESETS } from "@/lib/presets";
 
 const sans = Inter({ subsets: ["latin"], variable: "--font-sans", display: "swap" });
 const serif = Playfair_Display({ subsets: ["latin"], variable: "--font-serif", display: "swap" });
@@ -30,11 +32,19 @@ export const viewport: Viewport = {
   ],
 };
 
+const description = `Turn a topic into a finished, ready-to-post Instagram carousel. ${PRESETS.length} hand-built templates, an Art Director, and honest research — no AI images, just type and math.`;
+
+/** Absolute base for share-card URLs: the configured site, else Railway's own domain. */
+const base = siteUrl() ?? (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : undefined);
+
 export const metadata: Metadata = {
-  title: "Carousel Maker — topic in, carousel out",
-  description:
-    "Turn a topic into a finished, ready-to-post Instagram carousel. 24 templates, an Art Director, and honest research — with zero image-generation models.",
-  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "Carousel" },
+  metadataBase: base ? new URL(base) : undefined,
+  applicationName: BRAND.name,
+  title: { default: `${BRAND.name} — ${BRAND.tagline}`, template: `%s · ${BRAND.name}` },
+  description,
+  openGraph: { siteName: BRAND.name, title: BRAND.name, description: BRAND.tagline + " " + BRAND.promise, type: "website" },
+  twitter: { card: "summary_large_image", title: BRAND.name, description: BRAND.tagline + " " + BRAND.promise },
+  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: BRAND.short },
 };
 
 /**

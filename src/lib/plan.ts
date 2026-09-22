@@ -14,6 +14,8 @@
  * verified plan grants, not how the plan is proven.
  */
 
+import { PRESETS } from "./presets";
+
 export type PlanId = "free" | "pro";
 
 export type Feature =
@@ -66,7 +68,7 @@ export const PLANS: Record<PlanId, PlanDef> = {
     quotaPeriod: "week",
     features: new Set(FREE_FEATURES),
     perks: [
-      "All 24 templates",
+      `All ${PRESETS.length} templates`,
       "All 5 writer voices",
       "Art Director auto-pick",
       "Keyless research, or bring your own key",

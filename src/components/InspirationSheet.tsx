@@ -58,7 +58,7 @@ export default function InspirationSheet({ open, onClose, isPro, onUpgrade, onAp
       {!isPro ? (
         <div className="flex flex-col gap-3 pb-1">
           <p className="text-sm text-[var(--color-dim)]">
-            Drop a screenshot of any carousel or post you love. Carousel Maker reads its palette and
+            Drop a screenshot of any carousel or post you love. The Carousel Maker reads its palette and
             layout with pure canvas math — no image models — and matches the closest template, tinted
             to your image.
           </p>

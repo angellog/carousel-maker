@@ -11,6 +11,8 @@ import StylePicker from "@/components/StylePicker";
 import ThemeToggle from "@/components/ThemeToggle";
 import { useTurnstile } from "@/components/useTurnstile";
 import UpgradeSheet from "@/components/UpgradeSheet";
+import { Wordmark } from "@/components/BrandMark";
+import { BRAND, captionCredit } from "@/lib/brand";
 import { writeOfflineDeck } from "@/lib/content/offline";
 import { VOICES, getVoice } from "@/lib/content/voice";
 import { directDeck } from "@/lib/director";
@@ -389,7 +391,7 @@ export default function Page() {
 
   /** Free decks carry a small attribution line in the caption; Pro drops it. */
   const captionText = (d: Deck) =>
-    can(plan, "noAttribution") ? d.caption : `${d.caption}\n\nMade with Carousel Maker — no image models, just type & math.`;
+    can(plan, "noAttribution") ? d.caption : `${d.caption}\n\n${captionCredit()}`;
 
   const runExport = async (mode: "share" | "zip" | "one") => {
     if (!opts) return;
@@ -445,8 +447,8 @@ export default function Page() {
         <div className="flex-1 overflow-y-auto">
           <header className="flex items-start justify-between gap-2 px-4 pt-5">
             <div>
-              <h1 className="display text-[26px]">Carousel Maker</h1>
-              <p className="mt-1 text-sm text-[var(--color-dim)]">A topic in, a finished carousel out.</p>
+              <h1 aria-label={BRAND.name}><Wordmark /></h1>
+              <p className="mt-2 text-sm text-[var(--color-dim)]">{BRAND.tagline} {BRAND.promise}</p>
             </div>
             <div className="flex items-center gap-1">
               {!isPro && (

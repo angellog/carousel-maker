@@ -113,7 +113,7 @@ export async function exportZip(
       `Slides: ${total} · ${SLIDE_W * EXPORT_SCALE}×${SLIDE_H * EXPORT_SCALE} PNG (4:5)`,
       "",
       "Post the PNGs in numeric order. caption.txt is the ready-to-paste caption",
-      "(caption + hashtags only). project.json can be re-opened in Carousel Maker.",
+      "(caption + hashtags only). project.json can be re-opened in The Carousel Maker.",
       sources ? "sources.txt lists the research sources — reference only, not for the caption." : "",
       o.deck.offline
         ? "\nNote: this is a draft skeleton from the offline writer — replace the placeholder\nnumbers and examples with your own before posting."

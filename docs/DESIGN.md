@@ -111,7 +111,7 @@ normaliser, and the presets.
 - **Cover-first.** The cover is the hook; every other slide delivers value — no
   filler / transition slides.
 - **Type as art.** Information lives in the composition, not in paragraphs.
-- 24 templates across distinct design systems; see [preset-research.md](preset-research.md).
+- 32 templates across distinct design systems; see [preset-research.md](preset-research.md).
 
 ### The AI-slop test
 
