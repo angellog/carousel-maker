@@ -5,7 +5,7 @@
     {
       "id": "01",
       "pillar": "life",
-      "bg": "mustard",
+      "bg": "terracotta",
       "lines": [
         "Nobody is coming to",
         "live your life for you.",
@@ -18,7 +18,7 @@
     {
       "id": "02",
       "pillar": "moments",
-      "bg": "sage",
+      "bg": "lemon",
       "lines": [
         "One day you'll miss",
         "the ordinary Tuesday",
@@ -31,7 +31,7 @@
     {
       "id": "03",
       "pillar": "family",
-      "bg": "cream",
+      "bg": "blush",
       "lines": [
         "Call your parents.",
         "One day that number",
@@ -43,7 +43,7 @@
     {
       "id": "04",
       "pillar": "love",
-      "bg": "rose",
+      "bg": "mustard",
       "lines": [
         "The right person won't",
         "make you feel like",
@@ -57,7 +57,7 @@
     {
       "id": "05",
       "pillar": "growth",
-      "bg": "sky",
+      "bg": "forest",
       "lines": [
         "You're allowed to outgrow",
         "the version of you",
@@ -69,7 +69,7 @@
     {
       "id": "06",
       "pillar": "happiness",
-      "bg": "mustard",
+      "bg": "lilac",
       "lines": [
         "Happiness isn't a place.",
         "It's the coffee",
@@ -82,7 +82,7 @@
     {
       "id": "07",
       "pillar": "business",
-      "bg": "clay",
+      "bg": "periwinkle",
       "lines": [
         "Your dream doesn't",
         "need more motivation.",
@@ -95,7 +95,7 @@
     {
       "id": "08",
       "pillar": "self-worth",
-      "bg": "sage",
+      "bg": "coral",
       "lines": [
         "Stop explaining yourself",
         "to people who",
@@ -108,7 +108,7 @@
     {
       "id": "09",
       "pillar": "time",
-      "bg": "cream",
+      "bg": "navy",
       "lines": [
         "You don't have \"someday.\"",
         "You have today.",
@@ -120,7 +120,7 @@
     {
       "id": "10",
       "pillar": "friendship",
-      "bg": "sky",
+      "bg": "tangerine",
       "lines": [
         "Keep the friends who ask",
         "\"how are you, really?\"",
@@ -132,7 +132,7 @@
     {
       "id": "11",
       "pillar": "rest",
-      "bg": "rose",
+      "bg": "sky",
       "lines": [
         "Rest is not quitting.",
         "Even the ocean pulls back",
@@ -144,7 +144,7 @@
     {
       "id": "12",
       "pillar": "discipline",
-      "bg": "mustard",
+      "bg": "mint",
       "lines": [
         "Small steps every day",
         "will take you further",
@@ -157,7 +157,7 @@
     {
       "id": "13",
       "pillar": "parenting",
-      "bg": "sage",
+      "bg": "plum",
       "lines": [
         "Your kids won't remember",
         "how clean the house was.",
@@ -165,12 +165,13 @@
         "if you played."
       ],
       "caption": "The dishes can wait 🧸",
-      "tags": "#parenting #family #momlife #dadlife #quotes"
+      "tags": "#parenting #family #momlife #dadlife #quotes",
+      "font": "gochi"
     },
     {
       "id": "14",
       "pillar": "peace",
-      "bg": "clay",
+      "bg": "sage",
       "lines": [
         "Peace is expensive.",
         "Stop paying for it",
