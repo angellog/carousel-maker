@@ -163,7 +163,6 @@ export default function Page() {
     });
   }, [topic, audience, material, countTouched, slideCount]);
 
-  useEffect(() => setPaletteId(undefined), [presetId]);
   useEffect(() => {
     if (deck && index >= deck.slides.length) setIndex(Math.max(0, deck.slides.length - 1));
   }, [deck, index]);
@@ -357,6 +356,19 @@ export default function Page() {
     flash("Look applied from your image");
   };
 
+  /**
+   * Manual template pick (the rail, the Style sheet): switch to the template
+   * and drop back to its own default palette. The bundle-apply flows
+   * (applyDirection / applyInspiration / loadProject) deliberately set a preset
+   * and a palette together and must NOT reset here — which is why this is an
+   * explicit handler on the manual controls, not a `[presetId]` effect that
+   * would clobber those flows the moment they change the preset.
+   */
+  const pickPreset = useCallback((id: string) => {
+    setPresetId(id);
+    setPaletteId(undefined);
+  }, []);
+
   const updateSlide = (next: Slide) =>
     setDeck((d) => (d ? { ...d, slides: d.slides.map((s, i) => (i === index ? next : s)) } : d));
 
@@ -522,7 +534,7 @@ export default function Page() {
               const p = getPreset(id);
               const on = p.id === presetId;
               return (
-                <button key={id} onClick={() => setPresetId(id)} disabled={working} className="w-[104px] text-left" aria-pressed={on}>
+                <button key={id} onClick={() => pickPreset(id)} disabled={working} className="w-[104px] text-left" aria-pressed={on}>
                   <div className="overflow-hidden rounded-[var(--r-md)] border-2" style={{ borderColor: on ? "var(--color-brand)" : "transparent" }}>
                     <SlideCanvas deck={previewDeck} presetId={id} paletteId={on ? paletteId : undefined} index={1} scale={0.16} />
                   </div>
@@ -627,7 +639,7 @@ export default function Page() {
         />
 
         <Sheet open={sheet === "style"} title="Template" onClose={() => setSheet(null)}>
-          <StylePicker deck={previewDeck} presetId={presetId} paletteId={paletteId} onPreset={setPresetId} onPalette={setPaletteId} />
+          <StylePicker deck={previewDeck} presetId={presetId} paletteId={paletteId} onPreset={pickPreset} onPalette={setPaletteId} />
         </Sheet>
 
         <Sheet open={sheet === "voice"} title="Voice" onClose={() => setSheet(null)}>
@@ -828,7 +840,7 @@ export default function Page() {
           presetId={presetId}
           paletteId={paletteId}
           typeScale={typeScale}
-          onPreset={setPresetId}
+          onPreset={pickPreset}
           onPalette={setPaletteId}
           onTypeScale={setTypeScale}
         />
