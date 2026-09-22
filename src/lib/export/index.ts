@@ -48,20 +48,27 @@ export function slugify(s: string): string {
   );
 }
 
+/**
+ * The clean, copy-paste caption a user pastes under their post: the caption
+ * text plus hashtags, and nothing else. Research sources are deliberately kept
+ * out — they go in a separate `sources.txt` (see `sourcesFile`) so they never
+ * leak into the caption or the share-sheet text.
+ */
 export function captionFile(deck: Deck): string {
   const lines = [deck.caption.trim()];
   if (deck.hashtags.length) lines.push("", deck.hashtags.join(" "));
-  if (deck.sources.length) {
-    lines.push("", "Sources:");
-    for (const s of deck.sources) lines.push(`- ${s.title} — ${s.url}`);
-  }
-  if (deck.offline) {
-    lines.push(
-      "",
-      "[Draft skeleton — written by the built-in offline writer. Replace the placeholder",
-      "numbers and examples with your own before posting.]",
-    );
-  }
+  return lines.join("\n").trim();
+}
+
+/** Research provenance for the zip, kept separate from the caption. Null when none. */
+export function sourcesFile(deck: Deck): string | null {
+  if (!deck.sources.length) return null;
+  const lines = [
+    `Sources for "${plain(deck.topic)}"`,
+    "(Reference only — do not paste these into your caption.)",
+    "",
+  ];
+  for (const s of deck.sources) lines.push(`- ${s.title} — ${s.url}`);
   return lines.join("\n");
 }
 
@@ -88,6 +95,8 @@ export async function exportZip(
     await new Promise((r) => setTimeout(r, 0));
   }
   zip.file("caption.txt", captionFile(o.deck));
+  const sources = sourcesFile(o.deck);
+  if (sources) zip.file("sources.txt", sources);
   zip.file(
     "project.json",
     JSON.stringify(
@@ -103,9 +112,15 @@ export async function exportZip(
       `Template: ${getPreset(o.presetId).name}`,
       `Slides: ${total} · ${SLIDE_W * EXPORT_SCALE}×${SLIDE_H * EXPORT_SCALE} PNG (4:5)`,
       "",
-      "Post the PNGs in numeric order. caption.txt holds the caption and hashtags.",
-      "project.json can be re-opened in Carousel Maker to keep editing.",
-    ].join("\n"),
+      "Post the PNGs in numeric order. caption.txt is the ready-to-paste caption",
+      "(caption + hashtags only). project.json can be re-opened in Carousel Maker.",
+      sources ? "sources.txt lists the research sources — reference only, not for the caption." : "",
+      o.deck.offline
+        ? "\nNote: this is a draft skeleton from the offline writer — replace the placeholder\nnumbers and examples with your own before posting."
+        : "",
+    ]
+      .filter(Boolean)
+      .join("\n"),
   );
   return zip.generateAsync({ type: "blob" });
 }

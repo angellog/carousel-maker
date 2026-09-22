@@ -754,7 +754,7 @@ export default function Page() {
       {deck.engine && deck.engineKind !== "template" && (
         <p className="mx-4 mt-3 text-[11px] text-[var(--color-dim)]">
           Written by <strong className="text-[var(--color-text)]">{deck.engine}</strong>
-          {deck.sources.length > 0 ? " · sources in the caption" : ""}
+          {deck.sources.length > 0 ? " · sources saved with the download" : ""}
         </p>
       )}
       {deck.offline && (

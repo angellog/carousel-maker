@@ -3,7 +3,7 @@ import { clampWords, deckSchema, missingFields, normalizeDeck, normalizeHashtag,
 import { writeOfflineDeck } from "@/lib/content/offline";
 import { PRESETS, getPreset } from "@/lib/presets";
 import { plain } from "@/lib/render/text";
-import { captionFile, slugify } from "@/lib/export/index";
+import { captionFile, slugify, sourcesFile } from "@/lib/export/index";
 import { friendlyError, maskKey, sanitizeKey } from "@/lib/content/errors";
 
 const fallback = { handle: "@me", topic: "a topic" };
@@ -158,17 +158,26 @@ describe("export helpers", () => {
     expect(slugify("a".repeat(200)).length).toBeLessThanOrEqual(48);
   });
 
-  it("writes caption, hashtags, sources and the offline disclaimer", () => {
+  it("keeps the caption copy-paste clean and never leaks sources", () => {
     const deck = writeOfflineDeck({ topic: "t", preset: PRESETS[0], slideCount: 6 });
-    const out = captionFile({ ...deck, sources: [{ title: "Src", url: "https://e.com" }] });
-    expect(out).toContain("#carousel");
-    expect(out).toContain("https://e.com");
-    expect(out).toContain("Draft skeleton");
+    const withSrc = { ...deck, sources: [{ title: "Src", url: "https://e.com" }] };
+    const cap = captionFile(withSrc);
+    expect(cap).toContain("#carousel");
+    // The caption a user pastes carries no sources and no disclaimer.
+    expect(cap).not.toContain("https://e.com");
+    expect(cap).not.toContain("Sources");
+    expect(cap).not.toContain("Draft skeleton");
   });
 
-  it("omits the disclaimer for a model-written deck", () => {
+  it("puts research sources in a separate file, not the caption", () => {
     const deck = writeOfflineDeck({ topic: "t", preset: PRESETS[0], slideCount: 6 });
-    expect(captionFile({ ...deck, offline: false })).not.toContain("Draft skeleton");
+    expect(sourcesFile({ ...deck, sources: [{ title: "Src", url: "https://e.com" }] })).toContain("https://e.com");
+    expect(sourcesFile({ ...deck, sources: [] })).toBeNull();
+  });
+
+  it("omits the disclaimer from the shareable caption", () => {
+    const deck = writeOfflineDeck({ topic: "t", preset: PRESETS[0], slideCount: 6 });
+    expect(captionFile({ ...deck, offline: true })).not.toContain("Draft skeleton");
   });
 });
 
