@@ -1,0 +1,13 @@
+# Keep `railway up` uploads small — these are local artifacts, not app source.
+# (railway up respects .railwayignore/.gitignore for the upload, not .dockerignore.)
+node_modules
+.next
+.git
+brag-output
+brag-output-*
+marketing-reels
+samples
+output
+*.mp4
+*.mov
+.DS_Store
