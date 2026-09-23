@@ -177,6 +177,28 @@ export async function shareCarousel(
   }
 }
 
+/**
+ * Slides as Instagram-ready JPEGs: 1080×1350 (Instagram downscales anything
+ * wider than 1440, and rejects PNG for API posts).
+ */
+export async function renderJpegs(
+  o: RenderOptions,
+  onProgress?: (p: ZipProgress) => void,
+): Promise<Blob[]> {
+  await fontsReady();
+  const canvas = document.createElement("canvas");
+  canvas.width = SLIDE_W;
+  canvas.height = SLIDE_H;
+  const out: Blob[] = [];
+  for (let i = 0; i < o.deck.slides.length; i++) {
+    paintSlide(canvas, o, i, 1);
+    out.push(await canvasToBlob(canvas, "image/jpeg"));
+    onProgress?.({ done: i + 1, total: o.deck.slides.length });
+    await new Promise((r) => setTimeout(r, 0));
+  }
+  return out;
+}
+
 export async function downloadSlide(o: RenderOptions, index: number): Promise<void> {
   const blob = await renderSlideBlob(o, index);
   downloadBlob(blob, `${slugify(o.deck.topic)}-${String(index + 1).padStart(2, "0")}.png`);
