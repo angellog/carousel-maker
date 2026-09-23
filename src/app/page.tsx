@@ -23,7 +23,6 @@ import {
   downloadAll,
   downloadBlob,
   downloadSlide,
-  renderJpegs,
   shareCarousel,
   slugify,
 } from "@/lib/export";
@@ -41,9 +40,6 @@ interface LogLine {
   text: string;
   href?: string;
 }
-
-/** Owner-only auto-publish target. Unset on the public deploy, so the button never renders there. */
-const IG_HANDLE = (process.env.NEXT_PUBLIC_IG_AUTOPUBLISH_HANDLE || "").replace(/^@/, "");
 
 const TONES = ["Direct and practical", "Warm and personal", "Contrarian", "Analytical", "Playful"];
 /** The rail on the home screen — a spread of looks, not all 12. */
@@ -141,7 +137,6 @@ export default function Page() {
   const [log, setLog] = useState<LogLine[]>([]);
   const [busy, setBusy] = useState<{ done: number; total: number; verb: string } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
-  const [posted, setPosted] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -444,32 +439,6 @@ export default function Page() {
       }
     } catch (err) {
       flash(err instanceof Error ? err.message : "Export failed");
-    } finally {
-      setBusy(null);
-    }
-  };
-
-  const postToInstagram = async () => {
-    if (!opts || !IG_HANDLE) return;
-    const n = deck!.slides.length;
-    if (n > 10) return flash("Instagram carousels max out at 10 slides");
-    if (!window.confirm(`Post these ${n} slides to @${IG_HANDLE} now? This publishes publicly.`)) return;
-    setBusy({ done: 0, total: n, verb: "Rendering" });
-    setPosted(null);
-    try {
-      const jpegs = await renderJpegs(opts, (p) => setBusy({ ...p, verb: "Rendering" }));
-      setBusy({ done: n, total: n, verb: "Posting" });
-      const form = new FormData();
-      jpegs.forEach((b, i) => form.append("slides", new File([b], `${String(i + 1).padStart(2, "0")}.jpg`, { type: "image/jpeg" })));
-      form.append("caption", captionText(deck!));
-      form.append("hashtags", deck!.hashtags.join(" "));
-      const res = await fetch("/api/publish", { method: "POST", body: form });
-      const body = (await res.json().catch(() => ({}))) as { error?: string; permalink?: string };
-      if (!res.ok) throw new Error(body.error || `Publish failed (${res.status})`);
-      setPosted(body.permalink || `https://instagram.com/${IG_HANDLE}`);
-      flash(`Posted to @${IG_HANDLE}`);
-    } catch (err) {
-      flash(err instanceof Error ? err.message : "Publish failed");
     } finally {
       setBusy(null);
     }
@@ -854,16 +823,6 @@ export default function Page() {
           <button className="btn" disabled={!!busy} onClick={() => void runExport("zip")} aria-label="Download as zip">⤓</button>
         )}
       </div>
-      {IG_HANDLE && (
-        <div className="px-4 pb-2 flex flex-col gap-1">
-          <button className="btn w-full" disabled={!!busy} onClick={() => void postToInstagram()}>
-            Post to @{IG_HANDLE}
-          </button>
-          {posted && (
-            <a className="text-xs underline text-center" href={posted} target="_blank" rel="noreferrer">View the post</a>
-          )}
-        </div>
-      )}
       </div>
 
       <Sheet
