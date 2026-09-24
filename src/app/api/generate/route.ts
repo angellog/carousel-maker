@@ -9,11 +9,12 @@ import {
   type ProviderEvent,
 } from "@/lib/providers";
 import { turnstileSecretFromEnv, verifyTurnstile } from "@/lib/turnstile";
+import { authorize, describe } from "@/lib/access";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
 
-type Event = ProviderEvent | { type: "deck"; deck: unknown; issues?: unknown[] };
+type Event = ProviderEvent | { type: "deck"; deck: unknown; issues?: unknown[]; access?: unknown };
 
 function sse(controller: ReadableStreamDefaultController, e: Event) {
   controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify(e)}\n\n`));
@@ -33,6 +34,33 @@ export async function POST(req: Request) {
   const env = envFromProcess();
   const config = resolveConfig(input, env);
 
+  // The licence cap, enforced here because this is the only place it can be
+  // true. A slot is claimed before any work starts and rolled back if the run
+  // never gets going, so a failed generation is never charged to anyone.
+  const access = await authorize({
+    headers: req.headers,
+    apiKey: input.apiKey,
+    serverPaid: config.writer.serverPaid,
+  });
+  if (!access.ok) {
+    return new Response(
+      JSON.stringify({
+        error: access.message,
+        reason: access.reason,
+        state: access.state,
+        ...(access.retryAfter ? { retryAfter: access.retryAfter } : {}),
+      }),
+      {
+        status: 402,
+        headers: {
+          "Content-Type": "application/json",
+          ...(access.retryAfter ? { "Retry-After": String(access.retryAfter) } : {}),
+        },
+      },
+    );
+  }
+  const releaseSlot = access.rollback;
+
   // The paid path (our embedded key) is bot-shielded and rate limited. The
   // free paths (bring-your-own-key, keyless template writer) skip both, since
   // they spend the user's money or nobody's.
@@ -44,6 +72,7 @@ export async function POST(req: Request) {
       clientIdFromHeaders(req.headers),
     );
     if (!verdict.ok) {
+      releaseSlot();
       return new Response(
         JSON.stringify({ error: "Please complete the verification and try again." }),
         { status: 403, headers: { "Content-Type": "application/json" } },
@@ -53,6 +82,7 @@ export async function POST(req: Request) {
     // 2. Spend protection.
     const decision = checkRateLimit(clientIdFromHeaders(req.headers), rateLimitConfigFromEnv());
     if (!decision.ok) {
+      releaseSlot();
       return new Response(JSON.stringify({ error: decision.message, limit: decision.limit }), {
         status: 429,
         headers: {
@@ -79,8 +109,18 @@ export async function POST(req: Request) {
 
       try {
         const { deck, issues } = await generateDeck({ input, env, emit });
-        sse(controller, { type: "deck", deck, issues: issues as unknown[] | undefined });
+        // Recomputed after the slot was claimed, so the counter the browser
+        // shows is the counter the server will enforce on the next run.
+        const { state } = await describe(req.headers, { apiKey: input.apiKey });
+        sse(controller, {
+          type: "deck",
+          deck,
+          issues: issues as unknown[] | undefined,
+          access: state,
+        });
       } catch (err) {
+        // The run never produced a deck, so give the slot back.
+        releaseSlot();
         emit({ type: "error", message: err instanceof Error ? err.message : String(err) });
       } finally {
         controller.close();

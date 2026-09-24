@@ -22,10 +22,11 @@ and 3D letter is produced from paths, gradients and procedural noise on a canvas
   palette and layout and matches the closest look, no image model. ([inspiration](src/lib/inspiration))
 - **Honest research** — keyless (Wikipedia/Web) or your own key; never invents a
   statistic. See [PROVIDERS.md](docs/PROVIDERS.md).
-- **Freemium** — genuinely useful and unwatermarked for free; Pro removes the cap
-  and unlocks Inspiration + Brand Kit. See [PRODUCT.md](docs/PRODUCT.md).
+- **Every feature free** — all 32 templates, every voice, Match a look and Brand
+  Kit, two carousels a week. The $9 Maker licence lifts the cap for good; there
+  is no subscription. See [MONETIZATION.md](docs/MONETIZATION.md).
 
-**Docs:** [PRODUCT.md](docs/PRODUCT.md) · [DESIGN.md](docs/DESIGN.md) ·
+**Docs:** [PRODUCT.md](docs/PRODUCT.md) · [MONETIZATION.md](docs/MONETIZATION.md) · [DESIGN.md](docs/DESIGN.md) ·
 [CREATORS.md](docs/CREATORS.md) · [carousel-formats.md](docs/carousel-formats.md) ·
 [PROVIDERS.md](docs/PROVIDERS.md) · [preset-research.md](docs/preset-research.md)
 

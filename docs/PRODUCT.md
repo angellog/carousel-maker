@@ -61,53 +61,51 @@ deck. Stored per-device (`cm-brand`); moves to the account once auth is wired.
 
 ## Plans & entitlements (`src/lib/plan.ts`)
 
-`src/lib/plan.ts` is the single source of truth for what each plan grants. It is
-pure and read by both the UI (to gate features) and, once wired, the server (to
-authorise paid actions).
+`src/lib/plan.ts` is the single source of truth for what each plan grants, and
+[`src/lib/access`](../src/lib/access) is what enforces it. Full reasoning,
+economics and operations: [MONETIZATION.md](MONETIZATION.md).
 
-**Design principle:** the free tier must produce genuinely great, unwatermarked
-carousels, or nobody trusts the tool enough to pay. So **Pro never degrades
-output quality.** It removes friction and unlocks the magic.
+**Design principle:** every *feature* is free. The only caveat is volume. A
+crippled free tier would poison the word of mouth this product runs on, so the
+$9 licence sells consistency — the cap coming off — not capability.
 
-| | Free | Pro (`$8/mo`) |
-|---|---|---|
-| Templates | All 32 | All 32 |
-| Voices | All 5 | All 5 |
-| Art Director | ✓ | ✓ |
-| Research | Keyless (Wikipedia/Web) or your key | Deeper web tier by default, no key |
-| Free carousels | 2 / week | Unlimited |
-| Export | Full-res 4:5, no watermark | Full-res 4:5, no watermark |
-| Inspiration | — | ✓ |
-| Brand Kit | — | ✓ |
-| Caption attribution line | Present | Removed |
+| | Free | Your own key | Maker licence ($9 once) |
+|---|---|---|---|
+| Templates, voices, Art Director | All | All | All |
+| Match a look, Brand Kit | ✓ | ✓ | ✓ |
+| Research | Keyless or your key | Your key (live web) | Either |
+| Carousels | 2 / week | 2 / week | **Unlimited** |
+| On our engine | 2 / week | — | 30 / month |
+| Export | Full-res 4:5, no watermark | Same | Same |
+| Caption credit line | Present | Present | Removed |
 
-The free quota (2 / week) is enforced client-side today (`cm-usage`, keyed by ISO
-week) as the soft product limit; the server's `CAROUSEL_RATE_PER_WEEK` gives a
-hard per-IP backstop. A true per-user weekly cap belongs on the server once
-accounts exist (below).
+Two meters, counted separately: the **licence cap** (every carousel, whoever's
+key paid) and the **hosted allowance** (only the ones on our embedded key, the
+ones that cost us money). The licence lifts the first and bounds the second.
 
-## Wiring payments (the one honest gap)
+Both are enforced in `/api/generate` against a server-side counter keyed to the
+strongest identity that verifies — licence, then account (when accounts exist),
+then API-key fingerprint, then IP. `localStorage` holds nothing authoritative
+any more.
 
-Billing and accounts are intentionally **not** wired in this build — they need
-external setup and secrets this repo does not carry. The entitlement layer,
-gating, and upgrade surface are complete and real; only the "prove the plan"
-step is stubbed. In `UpgradeSheet`, **Start Pro** unlocks Pro on the device so
-the Pro experience is demonstrable and testable.
+## Payments — wired
 
-To make it a real subscription:
+Checkout, verification, licence issue and delivery are all implemented:
 
-1. **Accounts.** Add auth (e.g. Clerk, Auth.js, or Supabase Auth). Replace the
-   `cm-plan` / `cm-usage` local values with the signed-in user's plan and a
-   server-side daily counter.
-2. **Checkout.** Add Stripe. `Start Pro` → a Checkout Session; on
-   `checkout.session.completed` (webhook), set the user's plan to `pro`.
-3. **Server gate.** In `src/app/api/generate/route.ts`, read the user's plan and
-   call `quotaState(plan, usedToday)` before generating; return `402`/`429` when
-   blocked. The client already handles a JSON error body gracefully.
-4. **Entitlement checks.** Keep every gate reading `can(plan, feature)` from
-   `plan.ts` so the plan definition stays the single source of truth.
+- `POST /api/billing/checkout` — prices from the ledger, returns a Flutterwave
+  link. Refuses politely when keys are absent.
+- `/unlock` → `POST /api/license/redeem` — re-verifies the charge
+  server-to-server before minting, then shows the key.
+- `POST /api/billing/webhook` — signature-checked, re-verified, idempotent.
+- `POST /api/license/verify` — unlocks a second device from a pasted key.
 
-Nothing else in the product needs to change — the seams are already here.
+What remains is operational, not code: Flutterwave live keys, a
+`CAROUSEL_LICENSE_SECRET`, and a persistent path for
+`CAROUSEL_LICENSE_LEDGER`. See [MONETIZATION.md](MONETIZATION.md#configuration).
+
+Accounts (Google / Apple / email) are still optional and still unwired — the
+`AccountResolver` seam in `access/identity.ts` is where they land, and nothing
+else has to change when they do.
 
 ## Deployment
 

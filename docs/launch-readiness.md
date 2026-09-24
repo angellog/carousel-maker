@@ -24,7 +24,7 @@ Full audit done. Ranked, with disposition:
 
 | # | Sev | Finding | Status / plan |
 |---|-----|---------|---------------|
-| 1 | **HIGH** | Pro & free-quota enforced only in browser `localStorage` (`cm-plan`, `cm-usage`) — trivially bypassable; `/api/generate` never checks a plan | **Fixed by the billing build** — gate paid actions on the server against a real subscription row + server-side quota counter. *This is why billing needs accounts first.* |
+| 1 | **HIGH** | Pro & free-quota enforced only in browser `localStorage` (`cm-plan`, `cm-usage`) — trivially bypassable; `/api/generate` never checks a plan | **FIXED (2026-09-25).** `/api/generate` now calls `authorize()` ([`src/lib/access`](../src/lib/access)): server-side rolling-window counters keyed to a verified identity (signed licence → account → API-key fingerprint → IP). `localStorage` holds nothing authoritative; the licence is an HMAC token, not a client claim. Proven in `tests/route.generate.access.test.ts` (forged licence, client-claimed plan, and key-swap all refused). |
 | 2 | MED | Hosted-key spend guard is in-memory per-instance (`ratelimit.ts`) — resets per replica | Use a shared store (Upstash Redis) via `setRateLimitStore`, **or** pin Railway to 1 replica and document it |
 | 3 | MED | `/api/verify-key` is an unauthenticated, unthrottled key-validation oracle | **Fixed** — per-IP throttle (8/min) + body-size cap. Turnstile-on-verify optional follow-up |
 | 4 | MED | No CSP / security headers | **Baseline headers shipped.** CSP tracked separately (needs nonce for inline theme + Next hydration; allowlist Google Fonts + Turnstile) |
@@ -68,7 +68,24 @@ and the server-side security fix both need anyway.
 
 ---
 
-## 💠 Pricing tiers (decided 2026-09-23 — defined in `src/lib/plan.ts`)
+## 💠 Pricing — SUPERSEDED 2026-09-25
+
+The four-tier subscription below was replaced by a single one-time licence.
+Current model, economics and operations: **[MONETIZATION.md](MONETIZATION.md)**.
+
+- Every feature free; **2 carousels a week** is the only caveat.
+- **$9 once** (founding cohort of 5,000, then $19) lifts the cap forever.
+- Bring-your-own-key is a first-class free path, capped the same way — the
+  licence sells software, not compute.
+- Accounts are no longer a prerequisite for billing: a licence is a signed
+  token, so Supabase stays a *later*, optional decision (the `AccountResolver`
+  seam is ready). **The $10/month provisioning question no longer blocks
+  launch.**
+
+<details>
+<summary>Superseded: the 2026-09-23 subscription tiers</summary>
+
+
 
 | Entitlement | Free $0 | Starter $5/mo | Pro $19/mo | Lifetime $59 once |
 |---|:--:|:--:|:--:|:--:|
@@ -85,7 +102,23 @@ payment. `plan.ts` is the source of truth; Flutterwave maps price IDs to these.
 The new `customize` entitlement is defined but **not yet UI-enforced** — that
 gating pairs with the server-side enforcement in the billing build.
 
-## 💳 Track 5 — Flutterwave billing architecture
+</details>
+
+## 💳 Track 5 — Flutterwave billing — BUILT 2026-09-25
+
+Implemented for the one-time licence: `/api/billing/checkout`,
+`/api/billing/webhook` (verif-hash + server-to-server re-verify + idempotent by
+transaction id), `/api/license/redeem`, `/api/license/verify`, and the `/unlock`
+receipt page. Amounts are priced server-side from the ledger, never from the
+client; underpayments and non-USD charges are refused. 21 route tests cover it.
+
+Still needed before taking real money: live Flutterwave keys,
+`CAROUSEL_LICENSE_SECRET`, and `CAROUSEL_LICENSE_LEDGER` on the Railway volume.
+
+<details>
+<summary>Original subscription-era architecture notes</summary>
+
+
 
 Flutterwave is the processor. It sits on top of the accounts layer above.
 
@@ -119,10 +152,17 @@ below (Flutterwave: NGN/GHS/KES/ZAR/USD…).
 
 ---
 
+</details>
+
 ## Suggested build order
 
-1. **Security PR** (findings #3, #6, #7, env checklist #8) — independent, ship now.
-2. **Accounts** — Supabase Auth (Google, Apple, email magic link) + `subscriptions` schema + server-side session in route handlers.
-3. **Server-side entitlements** — move `can()`/quota enforcement into `/api/generate` (fixes #1); shared rate-limit store (#2).
-4. **Flutterwave** — checkout + webhook + callback, tied to the user.
-5. **Launch checklist** — prod env vars, replica/rate config, CSP, smoke test paid flow in Flutterwave test mode.
+1. ~~**Server-side entitlements**~~ — **done 2026-09-25** (fixes #1).
+2. ~~**Flutterwave**~~ — **done 2026-09-25**: checkout + webhook + redeem + receipt page.
+3. **Launch checklist** — set `CAROUSEL_LICENSE_SECRET`, `CAROUSEL_LICENSE_LEDGER`
+   (volume), Flutterwave live keys + `FLW_SECRET_HASH`, Turnstile keys,
+   `CAROUSEL_DAILY_BUDGET`; confirm `CAROUSEL_LICENSE_DEV_UNLOCK` is **unset**;
+   smoke-test a real $9 charge in Flutterwave test mode.
+4. **Security leftovers** — finding #2 (shared rate-limit store, or keep 1 replica)
+   and #4 (CSP).
+5. **Accounts** — optional now, not blocking. Supabase drops into the
+   `AccountResolver` seam when it earns its $10/month.

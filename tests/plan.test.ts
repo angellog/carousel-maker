@@ -3,90 +3,115 @@ import {
   PLANS,
   PLAN_ORDER,
   can,
+  getPlan,
+  hostedLimit,
+  hostedPeriod,
+  hostedState,
+  periodLabel,
   quotaLimit,
   quotaPeriod,
   quotaState,
-  getPlan,
   upsellFor,
-  FREE_LIFETIME_QUOTA,
-  STARTER_MONTHLY_QUOTA,
+  FREE_WEEKLY_QUOTA,
+  MAKER_HOSTED_MONTHLY_QUOTA,
   type Feature,
 } from "@/lib/plan";
 
-const ALL_FEATURES: Feature[] = [
-  "customize",
-  "inspiration",
-  "hostedResearch",
-  "brandKit",
-  "unlimited",
-  "noAttribution",
-];
+const CAPABILITY_FEATURES: Feature[] = ["customize", "inspiration", "hostedResearch", "brandKit"];
 
 describe("plans & entitlements", () => {
-  it("ships the four decided tiers in order", () => {
-    expect(PLAN_ORDER).toEqual(["free", "starter", "pro", "lifetime"]);
+  it("ships three plans: free, bring-your-own-key, and the one-time licence", () => {
+    expect(PLAN_ORDER).toEqual(["free", "byok", "maker"]);
     expect(PLANS.free.price).toBe("$0");
-    expect(PLANS.starter.price).toBe("$5/mo");
-    expect(PLANS.pro.price).toBe("$19/mo");
-    expect(PLANS.lifetime.price).toBe("$59 once");
-    expect(PLANS.lifetime.cadence).toBe("once");
+    expect(PLANS.byok.price).toBe("$0");
+    expect(PLANS.maker.price).toBe("$9 once");
+    expect(PLANS.maker.cadence).toBe("once");
   });
 
-  it("free is a real 2-carousel lifetime trial with no customization, no watermark", () => {
-    expect(quotaLimit("free")).toBe(FREE_LIFETIME_QUOTA);
-    expect(quotaPeriod("free")).toBe("lifetime");
-    expect(can("free", "customize")).toBe(false);
-    expect(can("free", "inspiration")).toBe(false);
+  it("gives every capability away on every plan — the cap is the only caveat", () => {
+    for (const plan of PLAN_ORDER) {
+      for (const feature of CAPABILITY_FEATURES) {
+        expect(can(plan, feature), `${plan} → ${feature}`).toBe(true);
+      }
+    }
+  });
+
+  it("free is two a week, on our engine", () => {
+    expect(quotaLimit("free")).toBe(FREE_WEEKLY_QUOTA);
+    expect(quotaPeriod("free")).toBe("week");
+    expect(hostedLimit("free")).toBe(FREE_WEEKLY_QUOTA);
     expect(can("free", "unlimited")).toBe(false);
-    expect(PLANS.free.perks.join(" ").toLowerCase()).toContain("no watermark");
   });
 
-  it("starter is limited-but-customizable: monthly cap, customize + research + no-attribution, no Pro magic", () => {
-    expect(quotaLimit("starter")).toBe(STARTER_MONTHLY_QUOTA);
-    expect(quotaPeriod("starter")).toBe("month");
-    for (const f of ["customize", "hostedResearch", "noAttribution"] as const) {
-      expect(can("starter", f), f).toBe(true);
-    }
-    for (const f of ["inspiration", "brandKit", "unlimited"] as const) {
-      expect(can("starter", f), f).toBe(false);
-    }
+  it("bring-your-own-key gets the same weekly cap and never touches our engine", () => {
+    expect(quotaLimit("byok")).toBe(FREE_WEEKLY_QUOTA);
+    expect(quotaPeriod("byok")).toBe("week");
+    expect(hostedLimit("byok")).toBe(0);
+    expect(can("byok", "unlimited")).toBe(false);
   });
 
-  it("pro unlocks everything and removes the cap", () => {
-    expect(quotaLimit("pro")).toBe(Infinity);
-    for (const f of ALL_FEATURES) expect(can("pro", f), f).toBe(true);
+  it("the licence lifts the cap and drops the credit, with a bounded hosted allowance", () => {
+    expect(quotaLimit("maker")).toBe(Infinity);
+    expect(can("maker", "unlimited")).toBe(true);
+    expect(can("maker", "noAttribution")).toBe(true);
+    expect(hostedLimit("maker")).toBe(MAKER_HOSTED_MONTHLY_QUOTA);
+    expect(hostedPeriod("maker")).toBe("month");
   });
 
-  it("lifetime grants the same entitlements as pro, unlimited, one-time", () => {
-    expect(quotaLimit("lifetime")).toBe(Infinity);
-    for (const f of ALL_FEATURES) expect(can("lifetime", f), f).toBe(true);
-    expect(quotaState("lifetime", 999).blocked).toBe(false);
+  it("keeps the caption credit on the free tiers — it is the distribution loop", () => {
+    expect(can("free", "noAttribution")).toBe(false);
+    expect(can("byok", "noAttribution")).toBe(false);
   });
 
-  it("unknown/undefined plan falls back to free", () => {
+  it("unknown or missing plan ids fall back to free, never to a paid plan", () => {
     expect(getPlan(undefined).id).toBe("free");
     expect(getPlan("enterprise").id).toBe("free");
-    expect(can(undefined, "inspiration")).toBe(false);
+    expect(can("enterprise", "unlimited")).toBe(false);
+  });
+});
+
+describe("quota math", () => {
+  it("counts down and blocks exactly at the limit", () => {
+    expect(quotaState("free", 0)).toMatchObject({ remaining: 2, blocked: false });
+    expect(quotaState("free", 1)).toMatchObject({ remaining: 1, blocked: false });
+    expect(quotaState("free", 2)).toMatchObject({ remaining: 0, blocked: true });
   });
 
-  it("quota math blocks free at its lifetime cap and never blocks unlimited plans", () => {
-    const fresh = quotaState("free", 0);
-    expect(fresh.remaining).toBe(FREE_LIFETIME_QUOTA);
-    expect(fresh.blocked).toBe(false);
-
-    const spent = quotaState("free", FREE_LIFETIME_QUOTA);
-    expect(spent.remaining).toBe(0);
-    expect(spent.blocked).toBe(true);
-
-    const starterOverCap = quotaState("starter", STARTER_MONTHLY_QUOTA + 5);
-    expect(starterOverCap.blocked).toBe(true);
-
-    const pro = quotaState("pro", 999);
-    expect(pro.unlimited).toBe(true);
-    expect(pro.blocked).toBe(false);
+  it("never reports negative remaining, even if the counter overshoots", () => {
+    expect(quotaState("free", 9).remaining).toBe(0);
+    expect(quotaState("free", 9).blocked).toBe(true);
   });
 
-  it("every feature has upsell copy", () => {
-    for (const f of ALL_FEATURES) expect(upsellFor(f).length).toBeGreaterThan(10);
+  it("treats an unlimited plan as never blocked", () => {
+    const s = quotaState("maker", 10_000);
+    expect(s.unlimited).toBe(true);
+    expect(s.blocked).toBe(false);
+    expect(s.remaining).toBe(Infinity);
+  });
+
+  it("meters the hosted allowance separately from the licence cap", () => {
+    expect(hostedState("maker", 29)).toMatchObject({ remaining: 1, blocked: false });
+    expect(hostedState("maker", 30)).toMatchObject({ remaining: 0, blocked: true });
+    // …while the licence cap is still unlimited.
+    expect(quotaState("maker", 30).blocked).toBe(false);
+  });
+
+  it("ignores fractional and negative usage", () => {
+    expect(quotaState("free", -3).used).toBe(0);
+    expect(quotaState("free", 1.9).used).toBe(1);
+  });
+});
+
+describe("wording", () => {
+  it("labels periods so they read inside a sentence", () => {
+    expect(periodLabel("week")).toBe("this week");
+    expect(periodLabel("month")).toBe("this month");
+  });
+
+  it("never claims a capability is paid, because none are", () => {
+    for (const f of CAPABILITY_FEATURES) {
+      expect(upsellFor(f).toLowerCase()).toContain("free");
+    }
+    expect(upsellFor("unlimited")).toMatch(/licence/i);
   });
 });

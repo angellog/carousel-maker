@@ -1,75 +1,97 @@
 /**
- * Plans & entitlements — the freemium spine.
+ * Plans & entitlements — the monetization spine.
  *
- * Design principle: the free tier must produce genuinely great, unwatermarked
- * carousels, or nobody trusts the tool enough to pay for it. So Pro never
- * degrades output quality. It removes friction (unlimited runs, no attribution
- * line), unlocks the magic (Inspiration, Brand Kit), and covers the paid brain
- * (hosted live-web research so a creator needn't bring their own key).
+ * The model, in one paragraph: **every feature is free.** The Art Director,
+ * all templates, all voices, Inspiration, Brand Kit, full-resolution export —
+ * nothing is held back, because a tool that cripples its free output never
+ * earns the word of mouth it needs. What you buy with the one-time Maker
+ * licence is *consistency*: the right to keep making carousels past the free
+ * weekly allowance.
  *
- * This module is the single source of truth for what each plan can do. It is
- * pure and deterministic; the UI reads it to gate features and the server reads
- * it to authorise paid actions. Billing/accounts are wired separately — see
- * docs/PRODUCT.md ("Wiring payments"); this layer defines the entitlements a
- * verified plan grants, not how the plan is proven.
+ * Two axes, because two different scarcities exist:
+ *
+ *   1. **Licence cap** (`quota`) — how many carousels this plan may make in a
+ *      period, no matter whose key pays for the words. This is the thing the
+ *      $9 buys. It applies even to bring-your-own-key users: they pay for the
+ *      compute, the licence pays for the software.
+ *   2. **Hosted allowance** (`hostedQuota`) — how many of those may run on
+ *      *our* embedded key, which costs us real money. Free users have one
+ *      because they have no other way in; licence holders get a monthly
+ *      allowance so that a creator with no API key is still a first-class
+ *      customer.
+ *
+ * This module is pure and deterministic. The UI reads it to phrase things; the
+ * server reads it to authorise (see `src/lib/access`). Entitlement *definition*
+ * lives here; entitlement *proof* is a signed licence — never localStorage.
  */
 
 import { PRESETS } from "./presets";
 
-export type PlanId = "free" | "starter" | "pro" | "lifetime";
+export type PlanId = "free" | "byok" | "maker";
 
 export type Feature =
-  /** Manual control of the look: pick any template, palette, voice and type
-      scale — versus the free tier's Art Director auto-pick only. */
+  /** Manual control of the look: any template, palette, voice, type scale. */
   | "customize"
-  /** Upload a screenshot / paste a link → matched look (pure canvas math). */
+  /** Upload a screenshot → matched look (pure canvas math). */
   | "inspiration"
-  /** The deeper keyless web-research tier by default (Wikipedia + DuckDuckGo). */
+  /** The deeper keyless web-research tier by default. */
   | "hostedResearch"
   /** Save a reusable brand kit: palette, handle, default voice. */
   | "brandKit"
-  /** No generation cap. */
+  /** No licence cap — make as many as you like. */
   | "unlimited"
-  /** Drop the small "made with Carousel Maker" line from the caption. */
+  /** Drop the one-line credit from the caption. */
   | "noAttribution";
 
 export type QuotaPeriod = "day" | "week" | "month" | "lifetime";
 
-/** How a plan is billed — drives the price display and the checkout path. */
+/** How a plan is paid for — drives the price display and the checkout path. */
 export type Cadence = "free" | "month" | "once";
 
 export interface PlanDef {
   id: PlanId;
   name: string;
-  /** Display price; billing lives in Flutterwave (see docs/launch-readiness.md). */
   price: string;
-  /** "free" · "month" (subscription) · "once" (one-time, e.g. Lifetime). */
   cadence: Cadence;
   tagline: string;
-  /** Generations allowed per `quotaPeriod`. Infinity for unlimited. */
+  /** Carousels per `quotaPeriod`, on any engine. Infinity = uncapped. */
   quota: number;
-  /** The window the quota resets on. */
   quotaPeriod: QuotaPeriod;
+  /** Of those, how many may run on our embedded key. 0 = bring your own. */
+  hostedQuota: number;
+  hostedPeriod: QuotaPeriod;
   features: ReadonlySet<Feature>;
-  /** Short bullets shown on the upgrade surface. */
   perks: string[];
 }
 
-/** Free is a genuine trial: two great carousels, ever (never resets). */
-export const FREE_LIFETIME_QUOTA = 2;
-/** Starter's monthly allowance. */
-export const STARTER_MONTHLY_QUOTA = 30;
+/**
+ * The free weekly allowance. Two is deliberate: enough to make something real
+ * and post it, not enough to run a posting schedule — which is exactly the
+ * moment the licence is worth $9.
+ */
+export const FREE_WEEKLY_QUOTA = 2;
 
-const FREE_FEATURES: Feature[] = [];
-const STARTER_FEATURES: Feature[] = ["customize", "hostedResearch", "noAttribution"];
-const PRO_FEATURES: Feature[] = [
-  "customize",
-  "inspiration",
-  "hostedResearch",
-  "brandKit",
-  "unlimited",
-  "noAttribution",
-];
+/**
+ * Carousels a licence holder may run on our engine each month, so that a
+ * creator without an API key still gets full value. At roughly a fifth of a
+ * cent per deck on the hosted engine this is ~6¢ per buyer per month — cheap
+ * insurance against excluding every non-technical customer.
+ *
+ * Set to 0 to make the licence strictly bring-your-own-key.
+ */
+export const MAKER_HOSTED_MONTHLY_QUOTA = 30;
+
+/** Every feature, available to everyone. The cap is the only caveat. */
+const EVERY_FEATURE: Feature[] = ["customize", "inspiration", "hostedResearch", "brandKit"];
+
+/**
+ * The caption credit stays on the free tiers. It is the distribution loop —
+ * every free carousel posted tells its audience where it came from — and it
+ * gives the licence a second, visible reason to exist. Flip this to include
+ * "noAttribution" in the free feature list to make the free tier credit-free.
+ */
+const FREE_FEATURES: Feature[] = [...EVERY_FEATURE];
+const MAKER_FEATURES: Feature[] = [...EVERY_FEATURE, "unlimited", "noAttribution"];
 
 export const PLANS: Record<PlanId, PlanDef> = {
   free: {
@@ -77,67 +99,59 @@ export const PLANS: Record<PlanId, PlanDef> = {
     name: "Free",
     price: "$0",
     cadence: "free",
-    tagline: "Try it — two carousels, on the house.",
-    quota: FREE_LIFETIME_QUOTA,
-    quotaPeriod: "lifetime",
+    tagline: "Everything the tool can do, two carousels a week.",
+    quota: FREE_WEEKLY_QUOTA,
+    quotaPeriod: "week",
+    hostedQuota: FREE_WEEKLY_QUOTA,
+    hostedPeriod: "week",
     features: new Set(FREE_FEATURES),
     perks: [
-      `${FREE_LIFETIME_QUOTA} carousels to try (lifetime)`,
-      "Art Director auto-picks your look",
+      `${FREE_WEEKLY_QUOTA} carousels a week`,
+      `Every feature: all ${PRESETS.length} templates, all voices, Art Director`,
+      "Match a look, Brand Kit, research — all included",
       "Full-resolution 4:5 export, no watermark",
     ],
   },
-  starter: {
-    id: "starter",
-    name: "Starter",
-    price: "$5/mo",
-    cadence: "month",
-    tagline: "Make it yours, on a budget.",
-    quota: STARTER_MONTHLY_QUOTA,
-    quotaPeriod: "month",
-    features: new Set(STARTER_FEATURES),
+  byok: {
+    id: "byok",
+    name: "Your own key",
+    price: "$0",
+    cadence: "free",
+    tagline: "Your key writes the words. Same two a week until you're licensed.",
+    quota: FREE_WEEKLY_QUOTA,
+    quotaPeriod: "week",
+    // Their key pays for the words, so they never draw on our engine.
+    hostedQuota: 0,
+    hostedPeriod: "week",
+    features: new Set(FREE_FEATURES),
     perks: [
-      `${STARTER_MONTHLY_QUOTA} carousels a month`,
-      `Full customization: any of ${PRESETS.length} templates, palettes & voices`,
-      "Deeper web research, no key needed",
-      "No attribution line",
+      `${FREE_WEEKLY_QUOTA} carousels a week`,
+      "Claude-grade copy and live web research, on your key",
+      "Every feature included",
+      "No account needed — the key is your sign-in",
     ],
   },
-  pro: {
-    id: "pro",
-    name: "Pro",
-    price: "$19/mo",
-    cadence: "month",
-    tagline: "For creators who post on a schedule.",
-    quota: Infinity,
-    quotaPeriod: "month",
-    features: new Set(PRO_FEATURES),
-    perks: [
-      "Unlimited carousels",
-      "Everything in Starter",
-      "Inspiration: match any look you love",
-      "Brand Kit: your palette, handle & voice saved",
-    ],
-  },
-  lifetime: {
-    id: "lifetime",
-    name: "Lifetime",
-    price: "$59 once",
+  maker: {
+    id: "maker",
+    name: "Maker licence",
+    price: "$9 once",
     cadence: "once",
-    tagline: "All of Pro, forever — one payment.",
+    tagline: "For posting on a schedule. One payment, yours forever.",
     quota: Infinity,
     quotaPeriod: "lifetime",
-    features: new Set(PRO_FEATURES),
+    hostedQuota: MAKER_HOSTED_MONTHLY_QUOTA,
+    hostedPeriod: "month",
+    features: new Set(MAKER_FEATURES),
     perks: [
-      "Everything in Pro, forever",
-      "One payment — no subscription",
-      "Unlimited carousels",
-      "All future templates & features",
+      "Unlimited carousels on your own API key",
+      `${MAKER_HOSTED_MONTHLY_QUOTA} a month on ours — no key needed`,
+      "No credit line in your captions",
+      "One payment. No subscription, ever.",
     ],
   },
 };
 
-export const PLAN_ORDER: PlanId[] = ["free", "starter", "pro", "lifetime"];
+export const PLAN_ORDER: PlanId[] = ["free", "byok", "maker"];
 
 export function getPlan(id: string | undefined): PlanDef {
   return PLANS[(id ?? "free") as PlanId] ?? PLANS.free;
@@ -148,48 +162,79 @@ export function can(plan: string | undefined, feature: Feature): boolean {
   return getPlan(plan).features.has(feature);
 }
 
-/** Generation allowance for a plan, per its quota period. */
+/** Licence allowance for a plan, per its quota period. */
 export function quotaLimit(plan: string | undefined): number {
   return getPlan(plan).quota;
 }
 
-/** The window a plan's quota resets on ("day" | "week"). */
+/** The window a plan's licence quota resets on. */
 export function quotaPeriod(plan: string | undefined): QuotaPeriod {
   return getPlan(plan).quotaPeriod;
+}
+
+/** How many of this plan's carousels may run on our embedded key. */
+export function hostedLimit(plan: string | undefined): number {
+  return getPlan(plan).hostedQuota;
+}
+
+export function hostedPeriod(plan: string | undefined): QuotaPeriod {
+  return getPlan(plan).hostedPeriod;
 }
 
 export interface QuotaState {
   used: number;
   limit: number;
   remaining: number;
-  /** True when the user has hit the cap and must wait or upgrade. */
+  /** True when the cap is reached and the next run must wait or be licensed. */
   blocked: boolean;
   unlimited: boolean;
 }
 
-/** Pure quota math; the UI supplies the count used in the current period. */
+/** Pure quota math; the caller supplies the count used in the current period. */
 export function quotaState(plan: string | undefined, usedInPeriod: number): QuotaState {
-  const limit = quotaLimit(plan);
+  return stateFor(quotaLimit(plan), usedInPeriod);
+}
+
+/** The same math for the hosted-engine allowance. */
+export function hostedState(plan: string | undefined, usedInPeriod: number): QuotaState {
+  return stateFor(hostedLimit(plan), usedInPeriod);
+}
+
+function stateFor(limit: number, usedInPeriod: number): QuotaState {
   const unlimited = !Number.isFinite(limit);
   const used = Math.max(0, Math.floor(usedInPeriod));
   const remaining = unlimited ? Infinity : Math.max(0, limit - used);
   return { used, limit, remaining, blocked: !unlimited && remaining <= 0, unlimited };
 }
 
-/** The single feature that most motivates an upgrade from a given context. */
+/** Human phrasing for a period, for sentences like "2 left this week". */
+export function periodLabel(period: QuotaPeriod): string {
+  switch (period) {
+    case "day":
+      return "today";
+    case "week":
+      return "this week";
+    case "month":
+      return "this month";
+    case "lifetime":
+      return "in total";
+  }
+}
+
+/**
+ * Why someone is seeing the licence sheet. Every line names what the $9 buys —
+ * never a feature, because no feature is withheld.
+ */
 export function upsellFor(feature: Feature): string {
   switch (feature) {
-    case "customize":
-      return "Choose your own template, palette and voice — upgrade to customize every deck.";
-    case "inspiration":
-      return "Match any carousel look you love — Pro reads its palette and layout and matches it.";
-    case "hostedResearch":
-      return "Get the deeper web-research tier by default, without bringing your own API key.";
-    case "brandKit":
-      return "Save your palette, handle and voice so every deck is on-brand in one tap.";
     case "unlimited":
-      return "You've used this week's free carousels. Go unlimited with Pro.";
+      return "You've used your free carousels for this week. The Maker licence lifts the cap for good — one payment, $9.";
     case "noAttribution":
-      return "Remove the attribution line from your caption.";
+      return "Free captions carry a one-line credit. The Maker licence drops it.";
+    case "customize":
+    case "inspiration":
+    case "hostedResearch":
+    case "brandKit":
+      return "This is free, and always will be. The licence only lifts the weekly cap.";
   }
 }

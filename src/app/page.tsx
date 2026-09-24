@@ -10,7 +10,7 @@ import SlideEditor from "@/components/SlideEditor";
 import StylePicker from "@/components/StylePicker";
 import ThemeToggle from "@/components/ThemeToggle";
 import { useTurnstile } from "@/components/useTurnstile";
-import UpgradeSheet from "@/components/UpgradeSheet";
+import LicenseSheet from "@/components/LicenseSheet";
 import { Wordmark } from "@/components/BrandMark";
 import { BRAND, captionCredit } from "@/lib/brand";
 import { writeOfflineDeck } from "@/lib/content/offline";
@@ -28,7 +28,9 @@ import {
 } from "@/lib/export";
 import { missingFields } from "@/lib/content/schema";
 import { getPreset, PRESETS } from "@/lib/presets";
-import { PLANS, can, quotaPeriod, quotaState, type PlanId, type QuotaPeriod, type Feature } from "@/lib/plan";
+import { can, type Feature } from "@/lib/plan";
+import { licenseHeaders, useAccess } from "@/lib/useAccess";
+import type { AccessState } from "@/lib/access/types";
 import { PALETTE_BY_ID } from "@/lib/theme";
 import type { Deck, Slide } from "@/lib/types";
 
@@ -45,41 +47,11 @@ const TONES = ["Direct and practical", "Warm and personal", "Contrarian", "Analy
 /** The rail on the home screen — a spread of looks, not all 12. */
 const FEATURED = ["swiss", "teardown", "lecture", "notebook", "stickerpop", "manifesto", "storyboard", "editorial", "versus", "infographic", "scrapbook", "magazine", "arcade"];
 
-/* ------------------------- local persistence ------------------------- */
+/* ------------------------- local persistence -------------------------
+ * Only preferences live here now. The plan and the carousel count moved to
+ * the server (`/api/access`), because a number in localStorage is a number
+ * the visitor can edit. */
 
-/** A usage-bucket key for a plan's quota period. "lifetime" never resets;
- *  "month" resets monthly; "week" is ISO-week; "day" is the calendar day.
- *  (Client-side hint only — real enforcement moves server-side with accounts.) */
-function periodKey(period: QuotaPeriod, d = new Date()): string {
-  if (period === "lifetime") return "lifetime";
-  const y = d.getUTCFullYear();
-  if (period === "month") return `${y}-M${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
-  if (period === "day") {
-    return `${y}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
-  }
-  const dt = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-  const day = dt.getUTCDay() || 7;
-  dt.setUTCDate(dt.getUTCDate() + 4 - day);
-  const yearStart = new Date(Date.UTC(dt.getUTCFullYear(), 0, 1));
-  const week = Math.ceil(((dt.getTime() - yearStart.getTime()) / 86_400_000 + 1) / 7);
-  return `${dt.getUTCFullYear()}-W${String(week).padStart(2, "0")}`;
-}
-function loadPlan(): PlanId {
-  try {
-    const v = localStorage.getItem("cm-plan");
-    return v && v in PLANS ? (v as PlanId) : "free";
-  } catch {
-    return "free";
-  }
-}
-function loadUsage(plan: PlanId): number {
-  try {
-    const raw = JSON.parse(localStorage.getItem("cm-usage") || "{}") as { key?: string; n?: number };
-    return raw.key === periodKey(quotaPeriod(plan)) ? raw.n ?? 0 : 0;
-  } catch {
-    return 0;
-  }
-}
 interface BrandKit {
   handle?: string;
   voiceId?: string;
@@ -109,23 +81,20 @@ export default function Page() {
   const [material, setMaterial] = useState("");
   const [apiKey, setApiKey] = useState("");
 
-  const [plan, setPlan] = useState<PlanId>("free");
-  const [usage, setUsage] = useState(0);
   const [upsell, setUpsell] = useState<Feature | undefined>(undefined);
+
+  // The server owns the plan and the count; the browser only displays them.
+  const { state: access, setState: setAccess, applyLicense, clearLicense, refresh } = useAccess(apiKey);
+  const plan = access?.plan ?? "free";
 
   useEffect(() => {
     setApiKey(loadStoredKey());
-    const p = loadPlan();
-    setPlan(p);
-    setUsage(loadUsage(p));
-    // Pro: apply a saved Brand Kit as the defaults for this session.
-    if (p === "pro") {
-      const b = loadBrand();
-      if (b) {
-        if (b.handle) setHandle(b.handle);
-        if (b.voiceId) { setVoiceId(b.voiceId); setTone(getVoice(b.voiceId).tone); }
-        if (b.paletteId) setPaletteId(b.paletteId);
-      }
+    // Brand Kit is free now, so it applies for everyone who saved one.
+    const b = loadBrand();
+    if (b) {
+      if (b.handle) setHandle(b.handle);
+      if (b.voiceId) { setVoiceId(b.voiceId); setTone(getVoice(b.voiceId).tone); }
+      if (b.paletteId) setPaletteId(b.paletteId);
     }
   }, []);
 
@@ -142,8 +111,8 @@ export default function Page() {
 
   const preset = getPreset(presetId);
   const canShare = useMemo(() => canShareFiles(), []);
-  const isPro = plan === "pro";
-  const quota = quotaState(plan, usage);
+  const licensed = plan === "maker";
+  const quota = access?.quota;
   const { getToken: getTurnstileToken } = useTurnstile();
 
   const sampleDeck = useMemo(
@@ -181,33 +150,14 @@ export default function Page() {
     setTimeout(() => setToast(null), 2600);
   };
 
-  const bumpUsage = useCallback(() => {
-    setUsage((n) => {
-      const next = n + 1;
-      try {
-        localStorage.setItem(
-          "cm-usage",
-          JSON.stringify({ key: periodKey(quotaPeriod(plan)), n: next }),
-        );
-      } catch {
-        /* ignore */
-      }
-      return next;
-    });
-  }, [plan]);
-
-  const setPro = (on: boolean) => {
-    setPlan(on ? "pro" : "free");
-    try {
-      localStorage.setItem("cm-plan", on ? "pro" : "free");
-    } catch {
-      /* ignore */
-    }
-  };
-
   const openUpgrade = (feature?: Feature) => {
     setUpsell(feature);
     setSheet("upgrade");
+  };
+
+  /** The licence travels with every generate call; the server decides. */
+  const applyLicenseToken = async (token: string) => {
+    await applyLicense(token);
   };
 
   const saveBrand = () => {
@@ -246,8 +196,9 @@ export default function Page() {
   const generate = useCallback(
     async (over: Overrides = {}) => {
       if (!topic.trim()) return;
-      // Free tier: honour the daily quota.
-      if (quotaState(plan, usage).blocked) {
+      // A blocked quota is shown up front, but the server is the authority —
+      // it refuses with 402 below even if this check is stale or skipped.
+      if (access?.quota.blocked) {
         openUpgrade("unlimited");
         return;
       }
@@ -271,7 +222,10 @@ export default function Page() {
       setStage("working");
       setLog([{ kind: "phase", text: research ? "Researching…" : "Writing…" }]);
       // Only the embedded/hosted path is bot-shielded; BYOK skips the challenge.
-      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        ...licenseHeaders(),
+      };
       if (!req.apiKey) {
         const token = await getTurnstileToken();
         if (token) headers["cf-turnstile-response"] = token;
@@ -286,8 +240,17 @@ export default function Page() {
         if (!res.ok || !res.body) {
           let msg = `Request failed (${res.status})`;
           try {
-            const j = (await res.json()) as { error?: string };
+            const j = (await res.json()) as { error?: string; reason?: string; state?: AccessState };
             if (j?.error) msg = j.error;
+            // 402 = the cap. Show the licence sheet with the server's own words
+            // and the server's own count, rather than guessing at either.
+            if (res.status === 402) {
+              if (j.state) setAccess(j.state);
+              setStage("compose");
+              flash(msg);
+              openUpgrade(j.reason === "hosted" ? "unlimited" : "unlimited");
+              return;
+            }
           } catch {
             const t = await res.text().catch(() => "");
             if (t) msg = t;
@@ -330,7 +293,9 @@ export default function Page() {
               if (over.paletteId !== undefined) setPaletteId(over.paletteId);
               setIndex(0);
               setStage("studio");
-              bumpUsage();
+              // The server sends what's left after this run; trust that.
+              if (ev.access) setAccess(ev.access as AccessState);
+              else void refresh();
             }
           }
         }
@@ -341,10 +306,10 @@ export default function Page() {
         setPresetId(req.presetId);
         setIndex(0);
         setStage("studio");
-        bumpUsage();
+        void refresh();
       }
     },
-    [topic, audience, handle, tone, voiceId, slideCount, presetId, research, material, apiKey, plan, usage, isPro, bumpUsage, getTurnstileToken],
+    [topic, audience, handle, tone, voiceId, slideCount, presetId, research, material, apiKey, access, setAccess, refresh, getTurnstileToken],
   );
 
   const makeItGreat = useCallback(() => {
@@ -475,12 +440,19 @@ export default function Page() {
               <p className="mt-2 text-sm text-[var(--color-dim)]">{BRAND.tagline} {BRAND.promise}</p>
             </div>
             <div className="flex items-center gap-1">
-              {!isPro && (
-                <button className="badge badge-brand tap px-3" onClick={() => openUpgrade()}>
-                  Go Pro
+              {licensed ? (
+                <button className="badge badge-pro tap px-3" onClick={() => openUpgrade()}>
+                  LICENSED
+                </button>
+              ) : (
+                <button
+                  className="badge badge-brand tap whitespace-nowrap px-3"
+                  onClick={() => openUpgrade()}
+                  title={quota ? `${quota.remaining} of ${quota.limit} carousels left ${quota.period}` : undefined}
+                >
+                  {quota ? `${quota.remaining} left` : "Go unlimited"}
                 </button>
               )}
-              {isPro && <span className="badge badge-pro">PRO</span>}
               <ThemeToggle />
             </div>
           </header>
@@ -529,7 +501,7 @@ export default function Page() {
               <div className="flex items-center gap-3">
                 <button
                   className="text-sm text-[var(--color-brand-2)] underline underline-offset-4 tap"
-                  onClick={() => (isPro ? setSheet("inspiration") : openUpgrade("inspiration"))}
+                  onClick={() => setSheet("inspiration")}
                   disabled={working}
                 >
                   Match a look
@@ -569,10 +541,20 @@ export default function Page() {
             </button>
           </div>
 
-          {!quota.unlimited && (
+          {quota && !quota.unlimited && (
             <p className="px-4 pt-3 text-[12px] text-[var(--color-dim)]">
-              {quota.remaining} of {quota.limit} carousels left
-              {quotaPeriod(plan) === "month" ? " this month" : quotaPeriod(plan) === "week" ? " this week" : ""}.
+              {quota.remaining === 0
+                ? `No carousels left ${quota.period}. `
+                : `${quota.remaining} of ${quota.limit} carousels left ${quota.period} — every feature included. `}
+              <button className="underline underline-offset-2" onClick={() => openUpgrade("unlimited")}>
+                {quota.remaining === 0 ? "Lift the cap for good" : "Go unlimited"}
+              </button>
+            </p>
+          )}
+          {licensed && access && !access.hosted.unlimited && access.hosted.limit > 0 && (
+            <p className="px-4 pt-3 text-[12px] text-[var(--color-dim)]">
+              Unlimited on your own key · {access.hosted.remaining} of {access.hosted.limit} left on
+              ours {access.hosted.period}.
             </p>
           )}
 
@@ -713,49 +695,38 @@ export default function Page() {
               />
             </label>
 
-            {can(plan, "brandKit") ? (
-              <div className="card p-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Brand Kit</span>
-                  <span className="badge badge-pro">PRO</span>
-                </div>
-                <p className="prose-tight mt-0.5 text-[12px] text-[var(--color-dim)]">
-                  Save your handle, voice and colours as defaults for every new deck.
-                </p>
-                <div className="mt-2 grid grid-cols-2 gap-2">
-                  <button className="btn btn-sm" onClick={saveBrand}>Save current</button>
-                  <button className="btn btn-sm" onClick={clearBrand}>Clear</button>
-                </div>
+            <div className="card p-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Brand Kit</span>
+                <span className="badge badge-brand">FREE</span>
               </div>
-            ) : (
-              <button className="card p-3 text-left" onClick={() => openUpgrade("brandKit")}>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Brand Kit</span>
-                  <span className="badge badge-pro">PRO</span>
-                </div>
-                <p className="prose-tight mt-0.5 text-[12px] text-[var(--color-dim)]">
-                  Save your handle, voice and colours so every deck is on-brand. Unlock with Pro.
-                </p>
-              </button>
-            )}
+              <p className="prose-tight mt-0.5 text-[12px] text-[var(--color-dim)]">
+                Save your handle, voice and colours as defaults for every new deck.
+              </p>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                <button className="btn btn-sm" onClick={saveBrand}>Save current</button>
+                <button className="btn btn-sm" onClick={clearBrand}>Clear</button>
+              </div>
+            </div>
           </div>
         </Sheet>
 
         <InspirationSheet
           open={sheet === "inspiration"}
           onClose={() => setSheet(null)}
-          isPro={isPro}
+          isPro
           onUpgrade={() => openUpgrade("inspiration")}
           onApply={applyInspiration}
         />
 
-        <UpgradeSheet
+        <LicenseSheet
           open={sheet === "upgrade"}
           onClose={() => setSheet(null)}
           context={upsell}
-          plan={plan}
-          onUnlock={() => { setPro(true); setSheet(null); flash("Pro unlocked on this device"); }}
-          onDowngrade={() => { setPro(false); setSheet(null); }}
+          state={access}
+          onApplyLicense={applyLicenseToken}
+          onClearLicense={async () => { await clearLicense(); setSheet(null); flash("Licence removed from this device"); }}
+          flash={flash}
         />
 
         {toast && <Toast text={toast} />}
@@ -897,9 +868,9 @@ export default function Page() {
           value={deck.hashtags.join(" ")}
           onChange={(e) => setDeck({ ...deck, hashtags: e.target.value.split(/\s+/).filter(Boolean) })}
         />
-        {!isPro && (
+        {!licensed && (
           <p className="mt-2 text-[11px] text-[var(--color-dim)]">
-            Free captions add a one-line credit. <button className="underline" onClick={() => openUpgrade("noAttribution")}>Remove it with Pro</button>.
+            Free captions carry a one-line credit. <button className="underline" onClick={() => openUpgrade("noAttribution")}>The licence drops it</button>.
           </p>
         )}
         {deck.sources.length > 0 && (
