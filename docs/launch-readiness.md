@@ -74,7 +74,7 @@ The four-tier subscription below was replaced by a single one-time licence.
 Current model, economics and operations: **[MONETIZATION.md](MONETIZATION.md)**.
 
 - Every feature free; **2 carousels a week** is the only caveat.
-- **$9 once** (founding cohort of 5,000, then $19) lifts the cap forever.
+- **$9 once** (founding cohort of 1,000, then $19) lifts the cap forever.
 - Bring-your-own-key is a first-class free path, capped the same way — the
   licence sells software, not compute.
 - Accounts are no longer a prerequisite for billing: a licence is a signed

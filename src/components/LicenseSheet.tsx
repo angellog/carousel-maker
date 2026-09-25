@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Sheet from "./Sheet";
 import { PLANS, upsellFor, type Feature } from "@/lib/plan";
 import type { AccessState } from "@/lib/access/types";
+import { priceCaption, SCARCITY_THRESHOLD } from "@/lib/access/pricing";
 
 interface Props {
   open: boolean;
@@ -178,11 +179,15 @@ export default function LicenseSheet({
                   </li>
                 ))}
               </ul>
-              {price?.cohort === "founding" && (
-                <p className="mt-3 text-[11px] leading-relaxed text-[var(--color-dim)]">
-                  {price.issued.toLocaleString()} of {price.seatsTotal.toLocaleString()} founding
-                  licences claimed
-                  {price.nextUsd > price.usd ? ` · then $${price.nextUsd}` : ""}.
+              {price && (
+                <p
+                  className={`mt-3 text-[11px] leading-relaxed ${
+                    price.cohort === "founding" && price.seatsLeft <= SCARCITY_THRESHOLD
+                      ? "text-[var(--color-brand-strong)]"
+                      : "text-[var(--color-dim)]"
+                  }`}
+                >
+                  {priceCaption(price)}
                 </p>
               )}
             </div>

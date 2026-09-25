@@ -57,9 +57,9 @@ describe("issuing a licence", () => {
 });
 
 describe("the founding ladder", () => {
-  it("defaults to 5,000 founding licences at $9, then $19", () => {
+  it("defaults to 1,000 founding licences at $9, then $19", () => {
     const cfg = pricingConfigFromEnv({});
-    expect(cfg).toMatchObject({ foundingSeats: 5000, foundingUsd: 9, standardUsd: 19 });
+    expect(cfg).toMatchObject({ foundingSeats: 1000, foundingUsd: 9, standardUsd: 19 });
   });
 
   it("prices from the ledger and steps up when the cohort sells out", () => {
@@ -79,11 +79,22 @@ describe("the founding ladder", () => {
   });
 
   it("states a true, checkable count", () => {
-    const cfg = pricingConfigFromEnv({ CAROUSEL_FOUNDING_SEATS: "5000" });
+    const cfg = pricingConfigFromEnv({});
     expect(priceCaption(priceFor(312, cfg))).toBe(
-      "312 of 5,000 founding licences claimed. After that it's $19.",
+      "312 of 1,000 founding licences claimed. Then $19.",
     );
-    expect(priceCaption(priceFor(5000, cfg))).toMatch(/sold out/i);
+    expect(priceCaption(priceFor(1000, cfg))).toMatch(/sold out/i);
+  });
+
+  it("switches to counting down once the cohort is nearly gone", () => {
+    const cfg = pricingConfigFromEnv({});
+    expect(priceCaption(priceFor(900, cfg))).toBe("Only 100 founding licences left at $9. Then $19.");
+    expect(priceCaption(priceFor(999, cfg))).toBe("Only 1 founding licence left at $9. Then $19.");
+  });
+
+  it("prices the 1,001st buyer at $19, without a deploy", () => {
+    const cfg = pricingConfigFromEnv({});
+    expect(priceFor(1000, cfg)).toMatchObject({ cohort: "standard", usd: 19, seatsLeft: 0 });
   });
 });
 

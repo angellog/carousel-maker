@@ -9,7 +9,7 @@ the cap forever.**
 
 | | Free | Your own key | Maker licence |
 |---|:--:|:--:|:--:|
-| Price | $0 | $0 | **$9 once** (founding), then $19 |
+| Price | $0 | $0 | **$9 once** (first 1,000), then $19 |
 | Carousels | 2 / week | 2 / week | **Unlimited** |
 | On our engine | 2 / week | — (uses your key) | 30 / month |
 | Every template, voice, Art Director | ✅ | ✅ | ✅ |
@@ -51,17 +51,22 @@ browser only displays what `/api/access` tells it.
 ## The founding cohort
 
 The launch price is real scarcity rather than a countdown nobody can check:
-**5,000 founding licences at $9, then $19.** The number shown in the app is the
+**1,000 founding licences at $9, then $19.** The number shown in the app is the
 count of licences actually issued, read from the ledger. When the cohort sells
 out, the price steps up on its own — no deploy, no code change.
+
+A thousand was chosen over a larger cohort because a counter only works if it
+can visibly run out. Under the last hundred, the line changes from "312 of
+1,000 claimed" to **"Only 88 founding licences left at $9"** — still a fact,
+just the one that matters at that point.
 
 | Path | Buyers | Revenue |
 |---|---|---|
 | Flat $9 × 5,000 | 5,000 | $45,000 |
-| **Ladder: 1,000 × $9, then 4,000 × $19** | 5,000 | **$85,000** |
-| Current default: 5,000 × $9, then $19 | 5,000 | $45,000, and every buyer after that pays $19 |
+| **Shipped: 1,000 × $9, then 4,000 × $19** | 5,000 | **$85,000** |
 
-To run the shorter founding cohort, set `CAROUSEL_FOUNDING_SEATS=1000`.
+The first 1,000 buyers fund the launch; the next 4,000 are worth twice as much
+each. Same funnel, +$40,000.
 
 ### What 5,000 buyers actually requires
 
@@ -90,7 +95,7 @@ you decided it could, not what the traffic decides.
 | `CAROUSEL_LICENSE_LEDGER` | in-memory | Path to the JSON-lines ledger (put it on the Railway volume). Without it the founding counter resets on restart. |
 | `CAROUSEL_LICENSE_REVOKED` | — | Comma/space separated licence ids to refuse (refunds, abuse). |
 | `CAROUSEL_LICENSE_DEV_UNLOCK` | off | Mints a licence with no payment. **Never set in production.** |
-| `CAROUSEL_FOUNDING_SEATS` | 5000 | Size of the founding cohort. |
+| `CAROUSEL_FOUNDING_SEATS` | 1000 | Size of the founding cohort. |
 | `CAROUSEL_FOUNDING_PRICE` | 9 | Founding price, USD. |
 | `CAROUSEL_STANDARD_PRICE` | 19 | Price after the cohort sells out. |
 | `FLW_PUBLIC_KEY` / `FLW_SECRET_KEY` | — | Flutterwave. Without them checkout returns a clear "not live yet". |

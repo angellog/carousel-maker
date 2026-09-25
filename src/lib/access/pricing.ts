@@ -7,7 +7,9 @@
  * and the number shown is the real count of licences issued, read from the
  * ledger. A countdown nobody can verify is just decoration; this one is true.
  *
- * Defaults are the launch plan: 5,000 founding licences at $9, then $19.
+ * Defaults are the launch plan: **1,000 founding licences at $9, then $19.**
+ * A thousand is small enough that the counter means something — it can visibly
+ * run out — and the step to $19 nearly doubles the take from the same funnel.
  * Every number is env-overridable so the ladder can be changed without a
  * deploy.
  */
@@ -21,7 +23,7 @@ export interface PriceTier {
   display: string;
   /** Seats left in the founding cohort (0 once sold out). */
   seatsLeft: number;
-  /** Total founding seats, for "312 of 5,000 claimed". */
+  /** Total founding seats, for "312 of 1,000 claimed". */
   seatsTotal: number;
   /** Licences issued so far. */
   issued: number;
@@ -44,7 +46,7 @@ export function pricingConfigFromEnv(
     return Number.isFinite(n) && n >= 0 ? n : d;
   };
   return {
-    foundingSeats: num(env.CAROUSEL_FOUNDING_SEATS, 5000),
+    foundingSeats: num(env.CAROUSEL_FOUNDING_SEATS, 1000),
     foundingUsd: num(env.CAROUSEL_FOUNDING_PRICE, 9),
     standardUsd: num(env.CAROUSEL_STANDARD_PRICE, 19),
     currency: "USD",
@@ -68,11 +70,23 @@ export function priceFor(issued: number, cfg: PricingConfig): PriceTier {
   };
 }
 
-/** The line under the price — true statements only. */
+/**
+ * The line under the price. Every version of it is a checkable fact — the
+ * counter is the ledger, not a timer that resets when you reload. Once the
+ * cohort is nearly gone the line says how few are left, because at that point
+ * that *is* the news.
+ */
+export const SCARCITY_THRESHOLD = 100;
+
 export function priceCaption(tier: PriceTier): string {
-  if (tier.cohort === "founding") {
-    const after = tier.nextUsd > tier.usd ? ` After that it's $${tier.nextUsd}.` : "";
-    return `${tier.issued.toLocaleString()} of ${tier.seatsTotal.toLocaleString()} founding licences claimed.${after}`;
+  if (tier.cohort !== "founding") {
+    return "The founding cohort sold out. One payment, yours forever.";
   }
-  return "The founding cohort sold out. One payment, yours forever.";
+  const after = tier.nextUsd > tier.usd ? ` Then $${tier.nextUsd}.` : "";
+  if (tier.seatsLeft <= SCARCITY_THRESHOLD) {
+    return `Only ${tier.seatsLeft.toLocaleString()} founding ${
+      tier.seatsLeft === 1 ? "licence" : "licences"
+    } left at $${tier.usd}.${after}`;
+  }
+  return `${tier.issued.toLocaleString()} of ${tier.seatsTotal.toLocaleString()} founding licences claimed.${after}`;
 }

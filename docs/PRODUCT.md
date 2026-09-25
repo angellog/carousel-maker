@@ -69,7 +69,7 @@ economics and operations: [MONETIZATION.md](MONETIZATION.md).
 crippled free tier would poison the word of mouth this product runs on, so the
 $9 licence sells consistency — the cap coming off — not capability.
 
-| | Free | Your own key | Maker licence ($9 once) |
+| | Free | Your own key | Maker licence ($9 once, first 1,000) |
 |---|---|---|---|
 | Templates, voices, Art Director | All | All | All |
 | Match a look, Brand Kit | ✓ | ✓ | ✓ |
