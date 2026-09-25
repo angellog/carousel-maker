@@ -101,12 +101,30 @@ export function makeOpenAIWriter(config: WriterConfig): Writer {
 
       // Hosts hiccup: a transient 429/5xx — and, seen in practice on Groq, an
       // occasional 400 under load — should not drop the user to the offline
-      // draft. Retry a couple of times with a short backoff before giving up.
-      // Groq's large models intermittently return 400/404 under load even when
-      // the model id is correct, so treat those as transient too (a genuinely
-      // wrong id just retries a couple of times, then falls back with a clear
-      // "check CAROUSEL_OSS_MODEL" message). 401 stays non-transient.
+      // draft. Retry a couple of times before giving up. Groq's large models
+      // intermittently return 400/404 under load even when the model id is
+      // correct, so treat those as transient too. 401 stays non-transient.
       const transient = (status: number) => status === 429 || status === 400 || status === 404 || status >= 500;
+
+      /**
+       * How long to wait before the next attempt. A rate-limited host tells us
+       * in `Retry-After`; honouring it is the difference between a retry that
+       * can work and two that cannot. When the wait is longer than we're
+       * willing to hold the request open, we stop immediately rather than
+       * sleeping through a backoff that was never going to help.
+       */
+      const MAX_WAIT_MS = 4000;
+      const waitFor = (res: Response, attempt: number): number | null => {
+        const header = res.headers.get("retry-after");
+        if (header) {
+          const seconds = Number(header);
+          const ms = Number.isFinite(seconds)
+            ? seconds * 1000
+            : Math.max(0, Date.parse(header) - Date.now());
+          if (Number.isFinite(ms) && ms > 0) return ms <= MAX_WAIT_MS ? ms : null;
+        }
+        return 500 * attempt;
+      };
       const doFetch = () =>
         fetchImpl(`${base}/chat/completions`, {
           method: "POST",
@@ -135,8 +153,11 @@ export function makeOpenAIWriter(config: WriterConfig): Writer {
         }
         if (res.ok) break;
         if (attempt < MAX_ATTEMPTS && transient(res.status) && !ctx.signal?.aborted) {
-          await new Promise((r) => setTimeout(r, 500 * attempt));
-          continue;
+          const wait = waitFor(res, attempt);
+          if (wait !== null) {
+            await new Promise((r) => setTimeout(r, wait));
+            continue;
+          }
         }
         const detail = await res.text().catch(() => "");
         emit({ type: "notice", message: openaiError(res.status, detail, config.label) });
@@ -202,16 +223,25 @@ export function makeOpenAIWriter(config: WriterConfig): Writer {
   };
 }
 
+/**
+ * Turn a host's failure into something true.
+ *
+ * Status is checked before any text heuristic, because a rate-limit body reads
+ * "Rate limit reached for model `gpt-oss-120b`" — and matching the word
+ * "model" there told users to go check their model id when nothing was wrong
+ * with it. A message that sends someone to fix working configuration is worse
+ * than no message.
+ */
 function openaiError(status: number, detail: string, label: string): string {
   const lower = detail.toLowerCase();
-  if (status === 401 || lower.includes("invalid api key") || lower.includes("unauthorized")) {
+  if (status === 429 || lower.includes("rate limit")) {
+    return `The free ${label} engine is busy right now — this is a draft. Try again in a moment, or add your own API key under Options → API key to skip the queue.`;
+  }
+  if (status === 401 || status === 403 || lower.includes("invalid api key") || lower.includes("unauthorized")) {
     return `${label} rejected the API key — check CAROUSEL_OSS_API_KEY. Used the built-in draft instead.`;
   }
-  if (status === 404 || lower.includes("model")) {
+  if (status === 404 || lower.includes("does not exist") || lower.includes("unknown model")) {
     return `${label} couldn't find that model — check CAROUSEL_OSS_MODEL. Used the built-in draft instead.`;
   }
-  if (status === 429) {
-    return `${label} is rate limited right now, so the built-in draft was used. Try again shortly.`;
-  }
-  return `${label} returned an error (${status}), so the built-in draft was used.`;
+  return `${label} returned an error (${status}), so the built-in draft was used. Try again in a moment.`;
 }

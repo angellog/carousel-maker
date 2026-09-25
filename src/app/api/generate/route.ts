@@ -108,7 +108,12 @@ export async function POST(req: Request) {
       }
 
       try {
-        const { deck, issues } = await generateDeck({ input, env, emit });
+        const { deck, issues, config: used } = await generateDeck({ input, env, emit });
+
+        // The writer we asked for failed and the orchestrator handed back a
+        // placeholder skeleton. That is not the carousel anyone came for, so
+        // it must not cost a slot: give it back before reporting the count.
+        if (deck.offline && used.writer.kind !== "template") releaseSlot();
         // Recomputed after the slot was claimed, so the counter the browser
         // shows is the counter the server will enforce on the next run.
         const { state } = await describe(req.headers, { apiKey: input.apiKey });
