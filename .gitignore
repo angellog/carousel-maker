@@ -8,5 +8,7 @@ out
 *.tsbuildinfo
 next-env.d.ts
 samples
-brag-output/composition/snapshots
+brag-output/
+brag-output-*/
+marketing-reels/
 output/
