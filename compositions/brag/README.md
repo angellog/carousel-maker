@@ -31,9 +31,33 @@ sub-compositions of `index.html` (nothing mounts them via
 `compositions/` and are rendered individually with `render -c`, the form the
 CLI documents for exactly this case.
 
-Keeping them there also restores lint coverage: while all five were at the
-root, `check` deep-linted only `index.html` and said nothing about the other
-four. Moving them surfaced a real error in `playbook.html` on the first run.
+Moving them did surface one real pre-existing error in `playbook.html` on the
+first run. But it did **not** improve validation overall — it weakened it, and
+that is the cost of this layout.
+
+### `check` does not really validate the four cuts
+
+`lintProject()` types files **by location**. It lints the root entry, then
+walks `compositions/` and lints everything there with `isSubComposition: true`.
+Under that flag eight rules return early — including
+`gsap_timeline_not_registered` and `missing_timeline_registry`, **the two
+detectors for the exact defect these cuts were just fixed for** (the missing
+`window.__timelines` guard). No flag restores root-mode grading: `check` passes
+no entry file, `lint` takes only a directory, and `lintProject`'s `entryFile`
+parameter is never passed by any caller in `hyperframes@0.8.51`.
+
+The browser passes do not cover the gap either. Delete
+`window.__timelines["main"] = tl;` from `compositions/square.html` outright and
+`npm run check` still reports **0 errors** across Lint, Runtime, Layout, Motion
+and Contrast and prints `Check passed` — Runtime and Layout only ever exercise
+the root `index.html`. The same file staged as a root `index.html` fails at
+once with `gsap_timeline_not_registered`, severity **error**.
+
+So a cut here whose animations never register renders a dead video that the
+gate calls healthy. All four register correctly today and are verified by
+render; what is lost is detection of **future** regressions. Until that is
+restored, treat `render -c` output — not `npm run check` — as the real check on
+these four files.
 
 `assets/` is ignored (`compositions/*/assets/` in `.gitignore`) but must sit
 at the project root, beside `index.html`: every reference inside the HTML is
@@ -72,7 +96,7 @@ until you have run the two restore steps.
 
 ```sh
 cd compositions/brag
-npm run check     # validate every cut (walks the whole project directory)
+npm run check     # validates index.html fully; the four cuts only partly
 npm run dev       # preview index.html
 npm run render    # mp4 of index.html
 ```
@@ -87,9 +111,13 @@ npx hyperframes@0.8.51 render -c compositions/refreshed.html
 npx hyperframes@0.8.51 render -c compositions/playbook.html
 ```
 
-`npm run check` takes no `-c` — it validates the whole project directory in one
-pass, so a single run covers all five cuts. `npm run dev` takes no `-c` either,
-but the Studio lists all five and lets you switch between them.
+`npm run check` takes no `-c`. It walks the whole project directory, so it
+*reports on* all five cuts — but it grades the four under `compositions/` as
+sub-compositions and its browser passes only exercise `index.html`, so a green
+run is a far weaker claim for those four than for the root. Read *`check` does
+not really validate the four cuts* above before trusting it. `npm run dev`
+takes no `-c` either, but the Studio lists all five and lets you switch between
+them.
 
 Renders land in the ignored `brag-output/`, not here.
 
@@ -139,3 +167,7 @@ exempts them from the root-mode nesting rule, so only `index.html`'s 5 nesting
 warnings surface. But each cut is actually rendered as a root
 (`render -c compositions/<cut>.html`), and linted that way it contributes its
 own 5. Don't read the 10 as a clean bill for the other four cuts.
+
+The same sub-composition grading also silences eight **error**-severity rules on
+those four files — see *`check` does not really validate the four cuts* above.
+The undercounted warnings are the visible half of one gap, not a separate quirk.
