@@ -22,6 +22,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
+    # This job only reads the repo — it posts no comments, pushes no commits and
+    # publishes no packages. Say so explicitly so the token cannot be used for
+    # more than a checkout if a dependency in the install step turns hostile.
+    permissions:
+      contents: read
+
     steps:
       - uses: actions/checkout@v7
 
