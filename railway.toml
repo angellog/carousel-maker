@@ -14,7 +14,16 @@ builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
 
 [deploy]
-healthcheckPath = "/"
+# /api/health, not /. The homepage renders perfectly well on a deployment with
+# no bot shield and no weekly cap, so "/" as a healthcheck proves only that Node
+# is listening. /api/health answers whether the boot-time environment guard
+# (src/instrumentation.ts) ran and passed, so a green healthcheck means the
+# contract in src/lib/env/require.ts is actually being enforced on this process.
+healthcheckPath = "/api/health"
 healthcheckTimeout = 120
+# A misconfigured production boot calls process.exit(1) from the instrumentation
+# hook, before a single request is served. ON_FAILURE turns that into a crash
+# loop with every missing variable named in the deploy log — loud and fixable —
+# instead of a deploy that reports healthy while it is wide open.
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3
