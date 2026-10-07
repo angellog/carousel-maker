@@ -1,8 +1,10 @@
 name: CI
 
 on:
+  # Only main on push. Every other branch is covered by its pull_request run,
+  # and listing "**" here ran the whole suite twice on every PR commit.
   push:
-    branches: ["**"]
+    branches: [main]
   pull_request:
 
 # A newer push to the same branch makes the in-flight run irrelevant.
@@ -12,6 +14,10 @@ concurrency:
 
 jobs:
   verify:
+    # Keep this job name exactly as-is: "lint + test" is the required status
+    # check configured on main. Renaming it silently stops main from ever seeing
+    # a passing check. The job does more than its name says; that is the lesser
+    # of the two problems.
     name: lint + test
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -32,3 +38,11 @@ jobs:
 
       - name: Test
         run: npm test
+
+      # `tsc --noEmit` is not the same gate as `next build` — it misses
+      # prerender failures, route config errors and bundling problems. The
+      # Dockerfile runs this exact command, so without it here the first thing
+      # that discovers a broken build is the production deploy. Verified to
+      # pass with no environment variables set.
+      - name: Build
+        run: npm run build
