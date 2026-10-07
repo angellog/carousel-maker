@@ -16,6 +16,18 @@
     "plugins": [{ "name": "next" }],
     "paths": { "@/*": ["./src/*"] }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  // `.railway/**/*.ts` is listed explicitly because TypeScript's wildcard
+  // includes skip directories whose name begins with a dot, so `**/*.ts` never
+  // reaches it. Without this entry the Railway IaC file — the only record of
+  // `replicas: 1` and the healthcheck path — is not typechecked at all, and a
+  // change that does not compile surfaces during `railway config apply`,
+  // mid-deploy, rather than in CI.
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".railway/**/*.ts"
+  ],
   "exclude": ["node_modules"]
 }

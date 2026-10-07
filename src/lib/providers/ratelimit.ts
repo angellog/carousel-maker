@@ -16,6 +16,16 @@
  * instance. Behind several instances, inject a shared store (Redis, etc.) via
  * `setRateLimitStore` so the counters are global; the interface is deliberately
  * tiny so that swap is a few lines. See docs/PROVIDERS.md.
+ *
+ * **A shared store here does not make this app safe on several instances, and
+ * shipping it on its own makes things worse.** The licence ledger
+ * (`src/lib/access/ledger.ts`) is per-process state too, and the damage is of a
+ * different kind: a per-replica limiter raises the free-tier ceiling, which
+ * costs us API spend, while a per-replica ledger sells the same founding seat
+ * twice and issues two licences for one $9 payment. Doing this swap alone makes
+ * multiple replicas *look* safe while the ledger silently double-issues. Both
+ * stores have to become shared in one change — see DEPLOY.md, "One replica, and
+ * why more than one is currently a bug", for the exit criteria.
  */
 
 export interface RateLimitConfig {

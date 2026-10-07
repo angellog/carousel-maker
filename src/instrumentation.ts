@@ -13,12 +13,13 @@
  * a readable log — loud, diagnosable, and serving nothing — instead of a deploy
  * that reports green while the weekly cap and the bot shield are both off.
  *
- * See src/lib/env/require.ts for the contract and /api/health for the runtime
- * report.
+ * See src/lib/env/require.ts for the contract, src/lib/env/volume.ts for the
+ * one check that needs the disk, and /api/health for the runtime report.
  */
 
 import { recordEnvGuard } from "./lib/env/boot";
 import { assertProductionEnv, isProductionServer } from "./lib/env/require";
+import { assertLedgerWritable } from "./lib/env/volume";
 
 export async function register(): Promise<void> {
   // Dev, test and `next build` are untouched: the contract describes what our
@@ -28,7 +29,10 @@ export async function register(): Promise<void> {
     return;
   }
 
-  const problems = assertProductionEnv(process.env);
+  // The pure contract first, then the disk. A ledger path that is missing or
+  // pointed outside the volume is worth saying before "and it isn't writable",
+  // which would be the obvious consequence rather than new information.
+  const problems = [...assertProductionEnv(process.env), ...assertLedgerWritable(process.env)];
   recordEnvGuard({ enforced: true, problems: problems.length });
   if (problems.length === 0) return;
 

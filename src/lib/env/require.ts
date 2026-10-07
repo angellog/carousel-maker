@@ -14,8 +14,16 @@
  * refuses to serve a single request until they are. See `src/instrumentation.ts`
  * for the boot-time call and `/api/health` for the runtime report.
  *
- * Everything here is pure — no `process.env` reads, no logging, no exits — so it
- * can be exercised against a fabricated environment without booting a server.
+ * Two kinds of requirement live here. `PRODUCTION_ENV_CONTRACT` is per-variable:
+ * each entry judges one name on its own. `PRODUCTION_ENV_INVARIANTS` is for the
+ * things no single variable can express — "the licence ledger is on the mounted
+ * volume" is a fact about three variables at once, and it is the one that keeps
+ * this service on a single replica.
+ *
+ * Everything here is pure — no `process.env` reads, no file system, no logging,
+ * no exits — so it can be exercised against a fabricated environment without
+ * booting a server. The one check that *must* touch the disk lives next door in
+ * `./volume.ts` and is called separately by the boot hook and `/api/health`.
  */
 
 /** How a variable must be configured in production. */
@@ -140,10 +148,20 @@ export interface EnvVarResult {
   problem?: string;
 }
 
+export interface EnvCheckResult {
+  /** Stable kebab-case id of the invariant, for `/api/health` to list. */
+  name: string;
+  ok: boolean;
+  /** The problem, when `ok` is false. */
+  problem?: string;
+}
+
 export interface EnvReport {
   ok: boolean;
   /** One entry per contract variable, in contract order. */
   vars: readonly EnvVarResult[];
+  /** One entry per cross-variable invariant, in declaration order. */
+  checks: readonly EnvCheckResult[];
 }
 
 /** Treat blank and whitespace-only as absent — every reader here trims first. */
@@ -175,13 +193,124 @@ function evaluate(req: EnvRequirement, raw: string | undefined): EnvVarResult {
 }
 
 /**
- * Check `env` against the production contract. Pure. Reports every variable,
- * passing and failing, so `/api/health` can show the whole contract rather than
- * only what broke.
+ * An invariant that spans more than one variable, so no `EnvRequirement` can
+ * express it. Returns the problem, or `undefined` when the invariant holds —
+ * *or* when this environment cannot be judged at all (see `RAILWAY_SERVICE_ID`
+ * below). The difference between "holds" and "not applicable" is deliberately
+ * invisible to callers: both mean "nothing to refuse a boot over".
+ */
+export interface EnvInvariant {
+  /** Stable kebab-case id. Appears in `/api/health`. */
+  name: string;
+  check: (env: Record<string, string | undefined>) => string | undefined;
+}
+
+/** Whether this process is running on Railway at all. */
+function onRailway(env: Record<string, string | undefined>): boolean {
+  // RAILWAY_SERVICE_ID is injected into every Railway build and deployment and
+  // exists nowhere else, so it is the cheapest honest "am I on Railway" signal.
+  // The self-host path (docker compose on a VPS, DEPLOY.md §2) has no volume
+  // mount variables at all, and guessing at its disk layout would turn a
+  // correct deployment into a crash loop.
+  return present(env.RAILWAY_SERVICE_ID) !== undefined;
+}
+
+/**
+ * Whether `child` is the same path as `parent` or sits underneath it.
+ *
+ * Plain string comparison on purpose: this module stays dependency-free so it
+ * can be imported from anywhere, including bundles with no `node:path`. Any
+ * path containing a `..` segment is rejected rather than resolved — a ledger
+ * path written as `/data/../tmp/licences.jsonl` is not something to normalise
+ * and accept, it is something to refuse.
+ */
+function isWithin(child: string, parent: string): boolean {
+  if (!child.startsWith("/") || !parent.startsWith("/")) return false;
+  const segments = (p: string) => p.split("/").filter((s) => s.length > 0);
+  const c = segments(child);
+  const p = segments(parent);
+  if (c.includes("..") || p.includes("..")) return false;
+  if (c.length < p.length) return false;
+  return p.every((segment, i) => c[i] === segment);
+}
+
+/**
+ * The invariants that keep this service on one replica.
+ *
+ * **There is no replica-count check here, because Railway does not expose one.**
+ * The injected variables are `RAILWAY_REPLICA_ID` and `RAILWAY_REPLICA_REGION`
+ * (https://docs.railway.com/variables/reference) — they identify *which*
+ * replica this process is, never how many exist. A process on replica 3 of 5
+ * and a process on the only replica see environments that are indistinguishable
+ * from inside the container. So rather than write a check that always passes
+ * and pretend the question is answered, this names what is actually enforceable:
+ *
+ *  1. **The ledger is on a mounted volume** — below. Railway refuses replicas on
+ *     a service that has a volume attached ("Replicas cannot be used with
+ *     volumes", https://docs.railway.com/volumes/reference#caveats), so a
+ *     correctly mounted ledger *is* the replica pin, enforced by the platform
+ *     rather than asserted by us. It is also the only configuration in which the
+ *     ledger survives a deploy.
+ *  2. **The ledger is writable** — `./volume.ts`, which needs the disk and so
+ *     cannot live in this pure module.
+ *
+ * Together those cover the failure this service actually has. The day the ledger
+ * moves to Postgres, (1) stops being the replica pin and a real replica check
+ * becomes necessary — by which time, per DEPLOY.md's exit criteria, a shared
+ * rate-limit store ships in the same change and multiple replicas become correct.
+ */
+export const PRODUCTION_ENV_INVARIANTS: readonly EnvInvariant[] = [
+  {
+    name: "ledger-on-mounted-volume",
+    check: (env) => {
+      const ledger = present(env.CAROUSEL_LICENSE_LEDGER);
+      // Absent is already reported by the `required` rule above; saying it twice
+      // just makes the deploy log longer.
+      if (ledger === undefined) return undefined;
+      if (!onRailway(env)) return undefined;
+
+      // Set by Railway on any service with a volume attached, and only then.
+      const mount = present(env.RAILWAY_VOLUME_MOUNT_PATH);
+      if (mount === undefined) {
+        return (
+          "CAROUSEL_LICENSE_LEDGER points at a file on this container's own disk: " +
+          "RAILWAY_VOLUME_MOUNT_PATH is unset, so no volume is attached to this service. " +
+          "Every deploy would start the licence ledger from zero — the founding-seat counter " +
+          "resets, seat numbers repeat, and a webhook retry mints a second licence for a " +
+          "payment already fulfilled. Attach a volume (Settings → Volumes) and point " +
+          "CAROUSEL_LICENSE_LEDGER inside its mount path. An attached volume is also what " +
+          "holds this service to one replica: Railway refuses replicas on a service with a " +
+          "volume, and two replicas means two divergent ledgers."
+        );
+      }
+
+      if (!isWithin(ledger, mount)) {
+        return (
+          "CAROUSEL_LICENSE_LEDGER is not inside the mounted volume. The volume is mounted at " +
+          `${mount} (RAILWAY_VOLUME_MOUNT_PATH), and the ledger path is somewhere else, which ` +
+          "means it is on the container filesystem and is discarded on every deploy — losing " +
+          "the seat counter and the webhook idempotency that stops one $9 payment minting two " +
+          `licences. Set CAROUSEL_LICENSE_LEDGER to a path under ${mount}.`
+        );
+      }
+
+      return undefined;
+    },
+  },
+];
+
+/**
+ * Check `env` against the production contract. Pure. Reports every variable and
+ * every invariant, passing and failing, so `/api/health` can show the whole
+ * contract rather than only what broke.
  */
 export function checkProductionEnv(env: Record<string, string | undefined>): EnvReport {
   const vars = PRODUCTION_ENV_CONTRACT.map((req) => evaluate(req, env[req.name]));
-  return { ok: vars.every((v) => v.ok), vars };
+  const checks = PRODUCTION_ENV_INVARIANTS.map((inv) => {
+    const problem = inv.check(env);
+    return problem === undefined ? { name: inv.name, ok: true } : { name: inv.name, ok: false, problem };
+  });
+  return { ok: vars.every((v) => v.ok) && checks.every((c) => c.ok), vars, checks };
 }
 
 /**
@@ -190,11 +319,16 @@ export function checkProductionEnv(env: Record<string, string | undefined>): Env
  *
  * This deliberately reports *all* problems rather than the first: an operator
  * fixing a misconfigured deploy should need one restart, not seven.
+ *
+ * Variables first, then invariants: a missing `CAROUSEL_LICENSE_LEDGER` should
+ * be read before a sentence about where that variable ought to point.
  */
 export function assertProductionEnv(env: Record<string, string | undefined>): string[] {
-  return checkProductionEnv(env)
-    .vars.filter((v) => !v.ok)
-    .map((v) => v.problem as string);
+  const report = checkProductionEnv(env);
+  return [
+    ...report.vars.filter((v) => !v.ok).map((v) => v.problem as string),
+    ...report.checks.filter((c) => !c.ok).map((c) => c.problem as string),
+  ];
 }
 
 /**

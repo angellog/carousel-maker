@@ -19,8 +19,33 @@ just work (no serverless timeouts) and the built-in spend limiter holds in memor
 on a single instance. This is the "safe public demo": your embedded key, bot-
 shielded and budget-capped, with **no database and no accounts** yet.
 
-The repo already ships everything Railway needs: `Dockerfile`, `railway.toml`,
-and `output: "standalone"`.
+The repo already ships everything Railway needs: `Dockerfile`,
+`.railway/railway.ts`, and `output: "standalone"`.
+
+> **The Railway config lives in `.railway/railway.ts`, not `railway.toml`.**
+> Railway's Config as Code (`railway.toml` / `railway.json`) is deprecated: new
+> services **cannot** opt into it, and files on existing services stop being
+> read on **2026-12-01**. This repo's `railway.toml` was deleted for that reason
+> — it would have been a file full of settings Railway never read, including the
+> replica count and the healthcheck path. Everything moved to
+> [Infrastructure as Code](https://docs.railway.com/infrastructure-as-code),
+> which the CLI applies on demand:
+>
+> ```bash
+> npm install                 # installs the `railway` devDependency that evaluates the file
+> railway link                # pick the project + environment, once
+> railway config plan         # show the diff; changes nothing
+> railway config apply        # apply, after you have read the diff
+> ```
+>
+> Railway does **not** read `.railway/` during a deploy, so this is a reviewable
+> record plus a one-command way to enforce it — not an automatic guard. The
+> automatic guard is at boot (see the enforcement note below).
+>
+> **Variables are deliberately not in that file.** Secrets stay on the Railway
+> service; see steps 4–7. `env` is omitted entirely rather than listed partially,
+> because an `env` block is a claim about the whole set and a partial one invites
+> an apply that proposes deleting the rest.
 
 > **The production environment is enforced, not checklisted.** Several of this
 > app's safety switches are fail-**open** when unset — no `CAROUSEL_RATE_PER_WEEK`
@@ -42,8 +67,12 @@ and `output: "standalone"`.
 
 1. **Push to GitHub.** Railway deploys from a repo. Make sure `main` is pushed.
 2. **Create the service.** [railway.app](https://railway.app) → *New Project* →
-   *Deploy from GitHub repo* → pick this repo. Railway detects `railway.toml` and
-   builds the `Dockerfile`. Leave replicas at **1** (the limiter counts in memory).
+   *Deploy from GitHub repo* → pick this repo. Railway finds the `Dockerfile` and
+   builds it. Name the project and the service **`carousel-maker`**, so
+   `railway config plan` lines up with `.railway/railway.ts` instead of
+   proposing a second service. Leave replicas at **1** — and read
+   *[One replica, and why](#one-replica-and-why-more-than-one-is-currently-a-bug)*
+   before you ever change that.
 3. **Set the brain (free Groq).** In the service's *Variables*, add:
    ```
    CAROUSEL_OSS_BASE_URL=https://api.groq.com/openai/v1
@@ -81,11 +110,24 @@ and `output: "standalone"`.
 6. **Turn on licensing.** *Required.* Attach a **volume** (*Settings → Volumes*)
    mounted at `/data` first — the licence ledger has to outlive a deploy, or the
    founding-seat counter resets, seat numbers repeat, and a webhook retry mints a
-   second licence for the same payment.
+   second licence for the same payment. The boot check refuses to serve if
+   `CAROUSEL_LICENSE_LEDGER` is not inside the volume's mount path.
    ```
    CAROUSEL_LICENSE_SECRET=<long random string>   # rotating it voids every licence
    CAROUSEL_LICENSE_LEDGER=/data/licences.jsonl   # must be on the volume
+   RAILWAY_RUN_UID=0                              # see below — not optional here
    ```
+   `RAILWAY_RUN_UID=0` is the one that looks like boilerplate and is not.
+   **Railway mounts volumes as `root`**, and this image's final stage runs
+   `USER node`, so without it `/data` is read-only to the server. `FileLedger`
+   swallows write failures on purpose — to keep serving through a disk
+   wobble — which means the symptom of getting this wrong is not an error. It is
+   a $9 sale that completes, unlocks for the buyer, and is recorded nowhere. The
+   boot probe in `src/lib/env/volume.ts` exists solely to turn that into a crash
+   loop at deploy time, and `/api/health` re-checks it on every healthcheck, so
+   a volume that goes read-only later turns the deployment red instead of
+   quietly losing sales.
+
    Never set `CAROUSEL_LICENSE_DEV_UNLOCK` here; it mints licences for free and a
    production boot with it present at all is refused.
 7. **Connect payments (Flutterwave).** *Required.* From the Flutterwave
@@ -104,6 +146,84 @@ and `output: "standalone"`.
 **What's next (Milestone 2):** add Supabase (Auth + Postgres), move the limiter to
 a `PostgresRateLimitStore` via `setRateLimitStore`, gate the embedded Claude+search
 key to logged-in Pro users, and cache research. Then Stripe (Milestone 3).
+
+## One replica, and why more than one is currently a bug
+
+**Run exactly one replica.** This is not a cost trade-off or a "we'll scale
+later" note. With the code as it stands, a second replica is incorrect, and the
+way it is incorrect costs money we have already taken.
+
+### What breaks
+
+The licence ledger (`src/lib/access/ledger.ts`, `FileLedger`) reads the whole
+ledger into memory at boot and appends to a JSON-lines file on the volume. It is
+per-process state. Two replicas means two ledgers that never see each other:
+
+- **`issued()` diverges.** It is the founding-seat counter — the thing that makes
+  "licence #312 of 1,000" a fact rather than copy. Two replicas each counting
+  their own sales means the number is fiction, and **two buyers can be sold the
+  same seat number**.
+- **`findByTx()` idempotency is per replica.** Flutterwave retries webhooks. A
+  retry that lands on the other replica finds no record of the payment and
+  **mints a second licence for one $9**.
+
+And it cannot be fixed by sharing the file: **Railway volumes cannot be used with
+replicas at all** ([volume
+caveats](https://docs.railway.com/volumes/reference#caveats)). A volume attaches
+to one service instance. So the choice is not "one replica or a shared file" —
+there is no shared file on offer.
+
+The in-memory rate limiter (`src/lib/providers/ratelimit.ts`,
+`MemoryRateLimitStore`) has the same shape and is the one usually named, but it
+is the smaller problem: a per-replica limiter means the free-tier ceiling is N
+times higher than intended. That costs us API spend. The ledger breaks *money
+correctness* — seats sold twice, licences issued twice for one payment.
+
+Which is why **swapping Upstash in for the rate limiter alone would be worse than
+doing nothing.** It would close the visible hole, make multi-replica look safe,
+and leave the licence ledger silently double-issuing. A ceiling on the money
+leak, in exchange for a break in money correctness. That swap is deliberately
+not in this repo yet.
+
+### What actually enforces it
+
+Three things, in increasing order of how much you can rely on them:
+
+| Where | What it does | How much it holds |
+|-------|--------------|-------------------|
+| `.railway/railway.ts` | `replicas: 1`, in version control, diffable | Declares intent; applied only when someone runs `railway config apply` |
+| The attached volume | Railway refuses replicas on a service with a volume | **Platform-enforced.** This is the real pin |
+| Boot check (`src/lib/env/require.ts`, `src/lib/env/volume.ts`) | Refuses to serve if the ledger is not inside the volume's mount path, or is not writable | Enforced on every production start, and re-checked by `/api/health` |
+
+The boot check is where the belt and braces meet: it does not assert "one
+replica" directly, because **Railway does not expose a replica count**. The
+injected variables are `RAILWAY_REPLICA_ID` and `RAILWAY_REPLICA_REGION` — they
+say *which* replica a process is, never how many exist, so a process on replica 3
+of 5 cannot tell itself apart from the only replica. Rather than write a check
+that always passes, the code asserts the thing that *implies* one replica and is
+observable: the ledger is on a mounted volume, and that volume is writable. Get
+either wrong and the service crash-loops with the reason in the deploy log. The
+reasoning for that choice is in the comment on `PRODUCTION_ENV_INVARIANTS`, so it
+survives the next person who goes looking for the replica check and does not find
+one.
+
+### When one replica stops being necessary
+
+Both of these, shipped **together as one change**:
+
+1. The ledger moves to Postgres — `LicenseLedger` is already a three-method
+   interface (`issued`, `findByTx`, `record`) and `setLedger` is already the
+   injection point.
+2. A shared rate-limit store goes in through `setRateLimitStore` —
+   `RateLimitStore` is already a small interface with an in-memory
+   implementation to copy.
+
+**Neither one alone.** Postgres-only leaves the limiter per-replica (spend leak).
+Shared-store-only leaves the ledger per-replica (duplicate licences). The seams
+for both already exist and are the right shape — nothing here needs redesigning,
+so this is a swap of two implementations, not a refactor. When it lands, delete
+`replicas: 1` from `.railway/railway.ts`, drop the ledger-on-volume invariant,
+and write the replica check that is honestly impossible today.
 
 ## Why this is cheap to run
 
@@ -201,6 +321,11 @@ per-user accounts with quotas, and a shared (Redis) rate-limit store if you ever
 run more than one instance — the store is a small pluggable interface
 (`setRateLimitStore` in `src/lib/providers/ratelimit.ts`). See
 [`docs/PROVIDERS.md`](docs/PROVIDERS.md).
+
+Before you reach for that shared store: a shared limiter does **not** make this
+app safe on more than one instance, and shipping it on its own makes things
+worse. Read *[One replica, and
+why](#one-replica-and-why-more-than-one-is-currently-a-bug)* first.
 
 ## Appendix — no-Docker alternative (Node + pm2 + nginx)
 
