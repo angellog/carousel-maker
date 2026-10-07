@@ -1,8 +1,8 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en" data-resolution="landscape">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=1920, height=1080" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=1920, height=1080">
     <title>Cinematic Web Playbook — brag</title>
     <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
     <style>
@@ -16,7 +16,7 @@
       .clip { position: absolute; inset: 0; }
       .stage { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 40px; padding: 0 120px; text-align: center; }
       .mint { color: #6ee7b7; } .dim { color: #8d97a6; }
-      .eyebrow { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 30px; letter-spacing: 0.22em; text-transform: uppercase; color: #7dd3fc; }
+      .eyebrow { font-family: ui-monospace, Menlo, monospace; font-size: 30px; letter-spacing: 0.22em; text-transform: uppercase; color: #7dd3fc; }
       .hook { font-size: 128px; font-weight: 800; letter-spacing: -0.035em; line-height: 1.02; }
       .sub { font-size: 46px; color: #8d97a6; font-weight: 500; }
 
@@ -24,17 +24,17 @@
       .stat2 { font-size: 108px; font-weight: 800; letter-spacing: -0.03em; }
       .phases { display: flex; flex-direction: column; gap: 16px; width: 900px; }
       .phrow { display: flex; align-items: center; gap: 24px; height: 78px; padding: 0 30px; border-radius: 16px; background: #14171c; border: 1px solid #262c35; font-size: 34px; text-align: left; }
-      .pnum { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 24px; color: #6ee7b7; width: 44px; flex: 0 0 auto; }
+      .pnum { font-family: ui-monospace, Menlo, monospace; font-size: 24px; color: #6ee7b7; width: 44px; flex: 0 0 auto; }
 
       /* Scene 3 — prompt card */
       .card { width: 1120px; background: #14171c; border: 1px solid #262c35; border-radius: 22px; box-shadow: 0 50px 130px rgba(0,0,0,0.6); overflow: hidden; text-align: left; }
       .card-head { display: flex; align-items: center; gap: 16px; padding: 26px 30px 22px; }
       .card-label { font-size: 34px; font-weight: 700; flex: 1; }
       .card-label::before { content: ""; display: inline-block; width: 12px; height: 12px; border-radius: 3px; background: #6ee7b7; margin-right: 16px; vertical-align: middle; }
-      .copybtn { position: relative; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 24px; background: #1b1f26; border: 1px solid #262c35; border-radius: 12px; padding: 12px 24px; color: #8d97a6; min-width: 118px; text-align: center; }
+      .copybtn { position: relative; font-family: ui-monospace, Menlo, monospace; font-size: 24px; background: #1b1f26; border: 1px solid #262c35; border-radius: 12px; padding: 12px 24px; color: #8d97a6; min-width: 118px; text-align: center; }
       .copybtn .lbl { display: inline-block; }
       .copybtn .done { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: #1b1f26; border-radius: 12px; color: #6ee7b7; opacity: 0; }
-      .card-body { padding: 26px 30px 30px; background: #08070a; border-top: 1px solid #262c35; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 27px; line-height: 1.6; color: #e7ebf1; }
+      .card-body { padding: 26px 30px 30px; background: #08070a; border-top: 1px solid #262c35; font-family: ui-monospace, Menlo, monospace; font-size: 27px; line-height: 1.6; color: #e7ebf1; }
       .card-body .v { color: #ff8a3d; }
 
       /* Scene 4 — flex */
@@ -44,67 +44,67 @@
       .wm-name { font-size: 118px; font-weight: 800; letter-spacing: -0.04em; color: #6ee7b7; }
       .wm-tag { font-size: 44px; color: #e9edf3; margin-top: 12px; }
 
-      .footer { position: absolute; left: 120px; right: 120px; bottom: 54px; display: flex; justify-content: space-between; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 26px; color: #8d97a6; }
+      .footer { position: absolute; left: 120px; right: 120px; bottom: 54px; display: flex; justify-content: space-between; font-family: ui-monospace, Menlo, monospace; font-size: 26px; color: #8d97a6; }
     </style>
   </head>
   <body>
-    <div id="root" data-composition-id="main" data-start="0" data-duration="20" data-width="1920" data-height="1080">
+    <div data-hf-id="hf-at0g" id="root" data-composition-id="main" data-start="0" data-duration="20" data-width="1920" data-height="1080">
 
       <!-- Scene 1 — hook -->
-      <section id="s1" class="clip" data-start="0" data-duration="3" data-track-index="0">
-        <div class="stage" id="s1-stage">
-          <div class="eyebrow" id="s1-eb">A Claude Code playbook</div>
-          <div class="hook" id="s1-hook">Build a <span class="mint">cinematic</span> website.</div>
-          <div class="sub" id="s1-sub">With copy-paste prompts and hyperframes.</div>
+      <section data-hf-id="hf-cp1n" id="s1" class="clip" data-start="0" data-duration="3" data-track-index="0">
+        <div data-hf-id="hf-jkxd" class="stage" id="s1-stage">
+          <div data-hf-id="hf-7u2m" class="eyebrow" id="s1-eb">A Claude Code playbook</div>
+          <div data-hf-id="hf-sv0l" class="hook" id="s1-hook">Build a <span data-hf-id="hf-amqm" class="mint">cinematic</span> website.</div>
+          <div data-hf-id="hf-8y74" class="sub" id="s1-sub">With copy-paste prompts and hyperframes.</div>
         </div>
       </section>
 
       <!-- Scene 2 — the playbook -->
-      <section id="s2" class="clip" data-start="3" data-duration="4" data-track-index="0">
-        <div class="stage" id="s2-stage">
-          <div class="stat2" id="s2-stat"><span class="mint">24</span> prompts. <span class="mint">6</span> phases.</div>
-          <div class="phases">
-            <div class="phrow" id="s2-p0"><span class="pnum">01</span>Set the stage</div>
-            <div class="phrow" id="s2-p1"><span class="pnum">02</span>Lay the foundation</div>
-            <div class="phrow" id="s2-p2"><span class="pnum">03</span>The cinematic hero</div>
-            <div class="phrow" id="s2-p3"><span class="pnum">04</span>Motion &amp; interaction</div>
-            <div class="phrow" id="s2-p4"><span class="pnum">05</span>Polish to impeccable</div>
-            <div class="phrow" id="s2-p5"><span class="pnum">06</span>Render &amp; ship</div>
+      <section data-hf-id="hf-ep6e" id="s2" class="clip" data-start="3" data-duration="4" data-track-index="0">
+        <div data-hf-id="hf-1eiu" class="stage" id="s2-stage">
+          <div data-hf-id="hf-ylzf" class="stat2" id="s2-stat"><span data-hf-id="hf-40ir" class="mint">24</span> prompts. <span data-hf-id="hf-yhq1" class="mint">6</span> phases.</div>
+          <div data-hf-id="hf-ur1g" class="phases">
+            <div data-hf-id="hf-wdej" class="phrow" id="s2-p0"><span data-hf-id="hf-119a" class="pnum">01</span>Set the stage</div>
+            <div data-hf-id="hf-tvgd" class="phrow" id="s2-p1"><span data-hf-id="hf-1fkb" class="pnum">02</span>Lay the foundation</div>
+            <div data-hf-id="hf-3wuu" class="phrow" id="s2-p2"><span data-hf-id="hf-1tvc" class="pnum">03</span>The cinematic hero</div>
+            <div data-hf-id="hf-b7lx" class="phrow" id="s2-p3"><span data-hf-id="hf-z1q5" class="pnum">04</span>Motion &amp; interaction</div>
+            <div data-hf-id="hf-ihsb" class="phrow" id="s2-p4"><span data-hf-id="hf-zg16" class="pnum">05</span>Polish to impeccable</div>
+            <div data-hf-id="hf-o8t9" class="phrow" id="s2-p5"><span data-hf-id="hf-zuc7" class="pnum">06</span>Render &amp; ship</div>
           </div>
         </div>
       </section>
 
       <!-- Scene 3 — a real prompt card -->
-      <section id="s3" class="clip" data-start="7" data-duration="5" data-track-index="0">
-        <div class="stage" id="s3-stage">
-          <div class="card" id="s3-card">
-            <div class="card-head">
-              <span class="card-label">Title assemble + push-in</span>
-              <span class="copybtn" id="s3-btn"><span class="lbl" id="s3-copy">Copy</span><span class="done" id="s3-done">Copied ✓</span></span>
+      <section data-hf-id="hf-pg9m" id="s3" class="clip" data-start="7" data-duration="5" data-track-index="0">
+        <div data-hf-id="hf-nz6b" class="stage" id="s3-stage">
+          <div data-hf-id="hf-ma41" class="card" id="s3-card">
+            <div data-hf-id="hf-841h" class="card-head">
+              <span data-hf-id="hf-5kgh" class="card-label">Title assemble + push-in</span>
+              <span data-hf-id="hf-d6bh" class="copybtn" id="s3-btn"><span data-hf-id="hf-n57w" class="lbl" id="s3-copy">Copy</span><span data-hf-id="hf-f2iz" class="done" id="s3-done">Copied ✓</span></span>
             </div>
-            <div class="card-body">Author a 6-second hero: the headline assembles word-by-word on one paused GSAP timeline, a soft ember bloom lands on the beat, and the frame slowly pushes in. Keep it deterministic and <span class="v">seek-safe</span>.</div>
+            <div data-hf-id="hf-0s4m" class="card-body">Author a 6-second hero: the headline assembles word-by-word on one paused GSAP timeline, a soft ember bloom lands on the beat, and the frame slowly pushes in. Keep it deterministic and <span data-hf-id="hf-0oql" class="v">seek-safe</span>.</div>
           </div>
-          <div class="sub" id="s3-cap" style="font-size:34px">Copy. Paste into Claude Code. Ship.</div>
+          <div data-hf-id="hf-zq24" class="sub" id="s3-cap" style="font-size:34px">Copy. Paste into Claude Code. Ship.</div>
         </div>
       </section>
 
       <!-- Scene 4 — the ethos -->
-      <section id="s4" class="clip" data-start="12" data-duration="4" data-track-index="0">
-        <div class="stage" id="s4-stage">
-          <div class="big" id="s4-a"><span class="mint">Zero</span> image models.</div>
-          <div class="sub" id="s4-sub">Every pixel is vectors, type, and math.</div>
+      <section data-hf-id="hf-ws82" id="s4" class="clip" data-start="12" data-duration="4" data-track-index="0">
+        <div data-hf-id="hf-f3hs" class="stage" id="s4-stage">
+          <div data-hf-id="hf-5cxs" class="big" id="s4-a"><span data-hf-id="hf-ivcj" class="mint">Zero</span> image models.</div>
+          <div data-hf-id="hf-pz26" class="sub" id="s4-sub">Every pixel is vectors, type, and math.</div>
         </div>
       </section>
 
       <!-- Scene 5 — wordmark -->
-      <section id="s5" class="clip" data-start="16" data-duration="4" data-track-index="0">
-        <div class="stage" id="s5-stage">
-          <div class="wm-name" id="s5-name">Cinematic Web Playbook</div>
-          <div class="wm-tag" id="s5-tag">Turn Claude Code into a motion studio.</div>
+      <section data-hf-id="hf-vdef" id="s5" class="clip" data-start="16" data-duration="4" data-track-index="0">
+        <div data-hf-id="hf-cr05" class="stage" id="s5-stage">
+          <div data-hf-id="hf-sbow" class="wm-name" id="s5-name">Cinematic Web Playbook</div>
+          <div data-hf-id="hf-ttvn" class="wm-tag" id="s5-tag">Turn Claude Code into a motion studio.</div>
         </div>
       </section>
 
-      <audio id="music" data-start="0" data-duration="20" data-volume="0.55" data-fade-in="0.4" data-fade-out="1.6" data-track-index="1" src="assets/music/happy-beats-business-moves-vol-1-by-ende-dot-app.mp3"></audio>
+      <audio data-hf-id="hf-n5hq" id="music" data-start="0" data-duration="20" data-volume="0.55" data-fade-in="0.4" data-fade-out="1.6" data-track-index="1" src="assets/music/happy-beats-business-moves-vol-1-by-ende-dot-app.mp3"></audio>
     </div>
 
     <script>
