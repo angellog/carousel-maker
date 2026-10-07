@@ -22,7 +22,23 @@ shielded and budget-capped, with **no database and no accounts** yet.
 The repo already ships everything Railway needs: `Dockerfile`, `railway.toml`,
 and `output: "standalone"`.
 
-**Steps (about 10 minutes):**
+> **The production environment is enforced, not checklisted.** Several of this
+> app's safety switches are fail-**open** when unset — no `CAROUSEL_RATE_PER_WEEK`
+> means no weekly cap at all, no `TURNSTILE_SECRET` means no bot shield at all.
+> So with `NODE_ENV=production` the server asserts its environment in
+> `src/instrumentation.ts` before it accepts a single request: it prints every
+> missing or unusable variable by name and **exits 1**. Railway's
+> `restartPolicyType = "ON_FAILURE"` turns that into a crash loop with a readable
+> deploy log rather than a green deploy that is wide open. The contract is
+> `src/lib/env/require.ts`, the full list with consequences is
+> `.env.production.example`, and `GET /api/health` reports the verdict — it is
+> the Railway healthcheck path, so a green deploy means the contract passed.
+>
+> A **first deploy will therefore crash-loop until steps 4–7 below are done.**
+> That is the intended behaviour; read the deploy log, it names what is missing.
+> Nothing changes for local dev, `next build`, or the test suite.
+
+**Steps (about 15 minutes):**
 
 1. **Push to GitHub.** Railway deploys from a repo. Make sure `main` is pushed.
 2. **Create the service.** [railway.app](https://railway.app) → *New Project* →
@@ -37,8 +53,10 @@ and `output: "standalone"`.
    ```
    Do **not** add an Anthropic key yet — without accounts, anyone could spend it.
    Claude turns on in Milestone 2 once Pro is gated by login.
-4. **Set the budget guardrails.** Tune to taste (this example gives a hard
-   free ceiling of **2 carousels per IP per week**, matching the app's free tier):
+4. **Set the budget guardrails.** *Required — the server refuses to start
+   without `CAROUSEL_RATE_PER_WEEK` and `CAROUSEL_DAILY_BUDGET`.* Tune to taste
+   (this example gives a hard free ceiling of **2 carousels per IP per week**,
+   matching the app's free tier):
    ```
    CAROUSEL_RATE_PER_MIN=15
    CAROUSEL_RATE_PER_WEEK=2
@@ -48,17 +66,40 @@ and `output: "standalone"`.
    mobile-carrier IP share the count. The in-app free quota (2/week, per device)
    is the softer product limit; a true per-user weekly cap needs accounts
    (Milestone 2). Loosen `CAROUSEL_RATE_PER_WEEK` if shared-IP users get blocked.
-5. **Add the bot shield (Cloudflare Turnstile, free).**
+   Do **not** set `CAROUSEL_RATE_DISABLED` — it switches off every ceiling at
+   once, including the daily budget, and is refused in production.
+5. **Add the bot shield (Cloudflare Turnstile, free).** *Required — this is the
+   only thing standing between a loop script and your API budget.*
    [dash.cloudflare.com](https://dash.cloudflare.com) → *Turnstile* → add a widget
    for your Railway domain. Then set:
    ```
    NEXT_PUBLIC_TURNSTILE_SITE_KEY=0x...    # public, safe in the browser
    TURNSTILE_SECRET=0x...                   # server-only
    ```
-   (Skip this to launch without a challenge; add it the moment the URL is public.)
-6. **Deploy & open.** Railway builds and gives you a `*.up.railway.app` URL.
-   Generate a carousel — it should stream a Groq-written deck. Add a custom domain
-   in *Settings → Networking* when ready (Railway handles TLS).
+   `NEXT_PUBLIC_*` is baked in at build time, so a change there needs a rebuild,
+   not just a restart.
+6. **Turn on licensing.** *Required.* Attach a **volume** (*Settings → Volumes*)
+   mounted at `/data` first — the licence ledger has to outlive a deploy, or the
+   founding-seat counter resets, seat numbers repeat, and a webhook retry mints a
+   second licence for the same payment.
+   ```
+   CAROUSEL_LICENSE_SECRET=<long random string>   # rotating it voids every licence
+   CAROUSEL_LICENSE_LEDGER=/data/licences.jsonl   # must be on the volume
+   ```
+   Never set `CAROUSEL_LICENSE_DEV_UNLOCK` here; it mints licences for free and a
+   production boot with it present at all is refused.
+7. **Connect payments (Flutterwave).** *Required.* From the Flutterwave
+   dashboard, and the webhook hash must match what you configured there:
+   ```
+   FLW_PUBLIC_KEY=FLWPUBK-...
+   FLW_SECRET_KEY=FLWSECK-...
+   FLW_SECRET_HASH=<the same value as in the FLW dashboard>
+   ```
+8. **Deploy & open.** Railway builds and gives you a `*.up.railway.app` URL.
+   Check `GET /api/health` first — `{"status":"ok"}` means the boot-time contract
+   passed on the process that is serving you. Then generate a carousel; it should
+   stream a Groq-written deck. Add a custom domain in *Settings → Networking*
+   when ready (Railway handles TLS).
 
 **What's next (Milestone 2):** add Supabase (Auth + Postgres), move the limiter to
 a `PostgresRateLimitStore` via `setRateLimitStore`, gate the embedded Claude+search
@@ -99,6 +140,12 @@ chmod 600 .env.production          # key readable only by you
 nano .env.production               # uncomment ONE engine block, paste your key
 ```
 
+Fill in **everything** under *Required in production* in that file, not just the
+engine block. The container runs with `NODE_ENV=production`, so it asserts those
+variables at startup and exits 1 naming any that are missing — `docker compose
+logs app` will show exactly which. See the enforcement note in the Railway
+section above for why.
+
 Then set your domain in `Caddyfile` (replace `carousel.example.com`).
 
 `.env.production` is git-ignored — never commit it.
@@ -113,8 +160,9 @@ That's it. Caddy fetches a TLS certificate for your domain and starts serving
 `https://your-domain`. Check it:
 
 ```bash
-docker compose ps          # both services "running"
-docker compose logs -f app # generation logs
+docker compose ps                        # both services "running"
+curl -s https://your-domain/api/health   # {"status":"ok"} = the env contract passed
+docker compose logs -f app               # generation logs
 ```
 
 Open the domain, type a topic, hit **Make carousel**, then **Download all** — the
@@ -133,11 +181,18 @@ With a paid Anthropic key, **every generation bills to you** (roughly a few cent
 to ~$0.10+ with web search). The app has a built-in rate limiter that guards the
 paid engines only (bring-your-own-key and keyless are never limited):
 
-| Variable | Default | Meaning |
-|----------|---------|---------|
-| `CAROUSEL_RATE_PER_MIN` | 5 | per-visitor burst ceiling |
-| `CAROUSEL_RATE_PER_DAY` | 50 | per-visitor daily ceiling |
-| `CAROUSEL_DAILY_BUDGET` | 500 | hard cap on total paid decks per day |
+| Variable | Default | In production | Meaning |
+|----------|---------|---------------|---------|
+| `CAROUSEL_RATE_PER_MIN` | 5 | optional | per-visitor burst ceiling |
+| `CAROUSEL_RATE_PER_DAY` | 50 | optional | per-visitor daily ceiling |
+| `CAROUSEL_RATE_PER_WEEK` | **∞** | **required** | per-visitor rolling-7-day ceiling — the free-tier cap |
+| `CAROUSEL_DAILY_BUDGET` | 500 | **required** | hard cap on total paid decks per day |
+| `CAROUSEL_RATE_DISABLED` | off | **refused when on** | switches off all four limits at once |
+
+The two marked **required** are asserted at startup and the server will not boot
+without them — `CAROUSEL_RATE_PER_WEEK` because its default is *no weekly cap at
+all*, which makes the free tier unlimited, and `CAROUSEL_DAILY_BUDGET` so the
+number that caps your bill is one somebody chose rather than one that defaulted.
 
 The limiter keys on the real client IP (Caddy passes `X-Forwarded-For`). IP limits
 are coarse for a public URL, so for a paid public deployment treat the daily budget
