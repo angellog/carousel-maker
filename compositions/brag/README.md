@@ -93,10 +93,49 @@ but the Studio lists all five and lets you switch between them.
 
 Renders land in the ignored `brag-output/`, not here.
 
+### The Studio rewrites composition source — commit the result
+
+`npm run dev` does not just read these files. Both Studio preview routes stamp
+`data-hf-id` onto every element and write the stamped HTML back over the
+tracked source:
+
+| What you do in Studio | Code path | File rewritten |
+| --- | --- | --- |
+| open the project (root preview) | `persistHfIdsIfNeeded` | `index.html` |
+| switch to one of the four cuts | `pinSubCompHfIds` → `stampFileHfIds` (`O_RDWR`, then `ftruncateSync` + `writeSync`) | `compositions/<cut>.html` |
+
+The rewrite also reserializes the file: `<!doctype>` → `<!DOCTYPE>`, void
+elements lose their ` />`, boolean attributes gain `=""`. It is semantically
+inert, and because each path only writes when the stamp would *add* ids, a file
+that is already stamped is never touched again.
+
+**So commit the stamped files; do not revert them.** Committing pins the ids and
+stops the tree going dirty on every later preview. The five cuts here were
+stamped this way — 290 `data-hf-id` attributes across 235 lines, in the commit
+that moved them, which is also why git recorded those renames at only 54–62%
+similarity.
+
+This is the one Studio side-effect that touches *tracked* files. The two that
+don't — the `.thumbnails/` cache and `snapshots/` — are covered by `.gitignore`
+instead.
+
 ### Known warnings
 
-`check` exits 0 but prints 10 style warnings: `timeline_track_too_dense` (one
-per cut) and `nested_structure_needs_subcomposition` (×5, one per
-`<section id="sN">` in `index.html`). Both ask for the scenes to be split into
-mounted sub-compositions. That is a restructure of hand-authored, already-shipped
-cuts, deliberately not done here. Errors must stay at zero.
+`check` exits 0 but prints style warnings of two kinds, both asking for the
+scenes to be split into mounted sub-compositions. That is a restructure of
+hand-authored, already-shipped cuts, deliberately not done here. Errors must
+stay at zero.
+
+The honest total is **30**:
+
+| Kind | Count | Where |
+| --- | --- | --- |
+| `timeline_track_too_dense` | 5 | one per cut |
+| `nested_structure_needs_subcomposition` | 25 | one per `<section id="sN">` — 5 sections × 5 cuts |
+
+A single `npm run check` prints only **10** of those 30. It walks the project
+directory and grades the four relocated cuts as *sub-compositions*, which
+exempts them from the root-mode nesting rule, so only `index.html`'s 5 nesting
+warnings surface. But each cut is actually rendered as a root
+(`render -c compositions/<cut>.html`), and linted that way it contributes its
+own 5. Don't read the 10 as a clean bill for the other four cuts.
