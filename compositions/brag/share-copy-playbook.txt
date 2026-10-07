@@ -1,0 +1,42 @@
+CINEMATIC WEB PLAYBOOK — share copy
+====================================
+
+— Primary caption ——————————————————————————
+
+Build a cinematic website with nothing but copy-paste prompts.
+
+24 prompts. 6 phases. Set the stage → foundation → the cinematic
+hero → motion → polish → render & ship. Paste each into Claude Code,
+watch it build.
+
+Zero image models. Every pixel is vectors, type, and math.
+
+Turn Claude Code into a motion studio. 🎬
+
+
+— Short / X ———————————————————————————————————
+
+A cinematic website, built entirely from copy-paste prompts.
+
+24 prompts · 6 phases · zero image models.
+Paste → build → ship.
+
+
+— One-liner ——————————————————————————————————
+
+The Cinematic Web Playbook: 24 prompts that turn Claude Code
+into a motion studio. No image models — just vectors, type & math.
+
+
+— Alt text ————————————————————————————————————
+
+A dark motion graphic titled "24 prompts. 6 phases." listing six
+build phases (Set the stage, Lay the foundation, The cinematic hero,
+Motion & interaction, Polish to impeccable, Render & ship), then a
+copy-paste prompt card and the wordmark "Cinematic Web Playbook —
+turn Claude Code into a motion studio."
+
+
+— Hashtags (optional) ————————————————————————
+
+#ClaudeCode #WebDesign #CreativeCoding #MotionDesign #Frontend
