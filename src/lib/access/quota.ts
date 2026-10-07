@@ -17,9 +17,11 @@
  * harder to game.
  *
  * The store is pluggable and the default is in-memory, which is correct for a
- * single instance (the deploy pins one replica — see `railway.toml`). Swap in
- * a durable one with `setQuotaStore` when there are several; the interface is
- * deliberately tiny so that's a few lines.
+ * single instance — and one instance is what this service runs, because the
+ * licence ledger makes more than one actively wrong (DEPLOY.md, "One replica,
+ * and why more than one is currently a bug"; the pin itself is
+ * `.railway/railway.ts`). Swap in a durable one with `setQuotaStore` when that
+ * changes; the interface is deliberately tiny so that's a few lines.
  */
 
 import type { QuotaPeriod } from "../plan";

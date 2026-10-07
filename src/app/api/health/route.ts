@@ -1,7 +1,7 @@
 /**
  * The liveness endpoint, and the proof that the boot-time environment guard ran.
  *
- * `railway.toml` points `healthcheckPath` here rather than at `/`. The homepage
+ * `.railway/railway.ts` points the healthcheck here rather than at `/`. The homepage
  * renders fine on a wide-open deployment, so using it as the healthcheck proves
  * only that Node is listening. This route answers the question that actually
  * matters at deploy time: *did this process check its environment before it
@@ -22,6 +22,7 @@
 
 import { readEnvGuard } from "@/lib/env/boot";
 import { checkProductionEnv, isProductionServer } from "@/lib/env/require";
+import { assertLedgerWritable } from "@/lib/env/volume";
 
 export const runtime = "nodejs";
 // Never prerender this. A statically evaluated health route would freeze a 200
@@ -37,7 +38,20 @@ export async function GET() {
   // Outside production the contract is informational: dev and CI are expected
   // to run without Flutterwave keys or a licence ledger, and failing the health
   // route there would make it useless as a local smoke test.
-  const problems = enforcing ? report.vars.filter((v) => !v.ok).map((v) => v.problem as string) : [];
+  //
+  // The ledger probe runs per request rather than being cached from boot, and
+  // that is the point: a volume can be remounted read-only, or fill up, long
+  // after a process started cleanly. Boot proved the ledger was writable then;
+  // this proves it is writable now, and turns the Railway healthcheck red if it
+  // stops being — which is the only warning we would otherwise get before a
+  // sale went unrecorded. It costs one `stat`-class syscall per healthcheck.
+  const problems = enforcing
+    ? [
+        ...report.vars.filter((v) => !v.ok).map((v) => v.problem as string),
+        ...report.checks.filter((c) => !c.ok).map((c) => c.problem as string),
+        ...assertLedgerWritable(process.env),
+      ]
+    : [];
 
   if (enforcing && guard === undefined) {
     problems.unshift(
@@ -59,6 +73,9 @@ export async function GET() {
         ? { ran: true, enforced: guard.enforced, at: new Date(guard.at).toISOString() }
         : { ran: false },
       env: report.vars.map((v) => ({ name: v.name, ok: v.ok })),
+      // Cross-variable invariants — currently "is the licence ledger on the
+      // mounted volume", which is what holds this service to one replica.
+      checks: report.checks.map((c) => ({ name: c.name, ok: c.ok })),
       problems,
     },
     {
