@@ -1,0 +1,7 @@
+One topic in, a finished Instagram carousel out. 📱
+
+Carousel Maker researches real, cited facts, writes the deck, and typesets it across 45 templates — then hands you post-ready PNGs.
+
+The flex: zero image models (every pixel is vectors, type + math), and it works with no API key at all.
+
+#buildinpublic #indiehackers

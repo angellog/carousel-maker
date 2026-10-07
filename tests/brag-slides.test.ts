@@ -15,7 +15,7 @@ import type { Deck } from "@/lib/types";
  * placeholders), so the template renders a finished-looking slide.
  */
 const enabled = process.env.RENDER_BRAG_SLIDES === "1";
-const OUT = process.env.BRAG_SLIDES_DIR || "brag-output/composition/assets/slides";
+const OUT = process.env.BRAG_SLIDES_DIR || "compositions/brag/assets/slides";
 const PRESET = process.env.BRAG_SLIDES_PRESET || "keynote";
 
 const DECK: Deck = {

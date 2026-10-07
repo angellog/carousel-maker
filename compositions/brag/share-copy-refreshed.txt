@@ -1,0 +1,5 @@
+One topic in, a finished Instagram carousel out. 📱
+
+We cut Carousel Maker from 45 templates down to the 12 formats people actually save — real cited facts, zero image models (every pixel is vectors + type + math), and it works with no API key at all.
+
+#buildinpublic #indiehackers
