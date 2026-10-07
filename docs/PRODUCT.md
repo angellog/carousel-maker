@@ -6,14 +6,46 @@ A phone-first studio that turns a topic into a ready-to-post Instagram carousel:
 research → write → typeset → export. It is designed to be genuinely useful for
 free and worth a small subscription for people who post on a schedule.
 
-## The north star: zero image-generation models
+## The north star: imagery prefers the real photograph
 
-Every pixel is vectors, type, canvas and math. No diffusion, no generated
-photos, no generated illustration. This is the identity, not a limitation. It is
-what makes the output fast, free to run, deterministic, legally clean, and
-impeccable instead of AI-slop. Any feature added here must hold that line —
-including Inspiration, which reads an uploaded image with pure canvas math, never
-a vision model.
+**No generated pixel is ever on our bill, in the default path, or unlabelled.**
+
+The deck is vectors, type, canvas and math — that is what makes the output fast,
+free to run, deterministic, legally clean, and impeccable instead of AI-slop.
+Imagery is additive to that, never a replacement for it, and it is filled from
+three ranked sources:
+
+| Layer | Source | Cost to us | Latency | Provenance |
+|---|---|---|---|---|
+| **1. Your image** | A photo you upload, composited into the template's design system | none | instant | yours |
+| **2. Open-licensed photo** | Openverse / Wikimedia Commons, credited automatically | none | one fetch | CC, attributed |
+| **3. Generated** | Diffusion — opt-in, your own key, background/texture roles only | yours | slow | labelled |
+
+Layer 1 is the answer to what people actually ask for when they ask for
+"images": their product, on the slide. Diffusion cannot draw *their* shoe — it
+invents a different one.
+
+Layer 3 is fenced, and the fences are the product decision, not an
+implementation detail:
+
+- **The user's own key, never the server's.** Generation never touches our
+  hosted budget.
+- **Opt-in.** Never the default, never on the free path.
+- **Background, texture and abstract roles only.** Never text, never faces,
+  never charts, never a product — those are where slop is visible and where a
+  generated pixel would be a lie.
+- **Seeded and cached**, so the same input still gives the same deck.
+- **Labelled in the UI**, so the user always knows which slides are generated.
+
+Any feature added here must hold that line. A slide must also render completely
+with its imagery slot empty: imagery is never load-bearing. Inspiration keeps
+its own stricter promise — it reads an uploaded image with pure canvas math,
+never a vision model.
+
+This replaces the earlier absolute framing ("zero image-generation models,
+permanently, by design"). It was reversed deliberately, on founder direction,
+in [GST-25](/GST/issues/GST-25) — a narrower claim that survives contact with
+the roadmap, rather than one we would quietly edit later.
 
 ## Who it's for
 
@@ -28,7 +60,7 @@ habit. It works with no account and no API key.
 | **Topic in, carousel out** | One field, one primary action. `Make it great` runs the whole pipeline. |
 | **Taste is the product** | 32 templates across many design systems, each obeying real design laws (see [DESIGN.md](DESIGN.md)). |
 | **Works for anyone, keyless** | Free Wikipedia/Web research; bring your own key for live web; hosted brains in between. See [PROVIDERS.md](PROVIDERS.md). |
-| **Honest** | Never invents a statistic. Real figures trace to a source; a stat with no sourced number becomes a label. |
+| **Honest** | Never invents a statistic, and never invents a photograph. Real figures trace to a source; a stat with no sourced number becomes a label; a generated pixel is opt-in and labelled. |
 | **Personality** | Five writer voices; the copy has a point of view, not a template smell. |
 | **Intelligence** | The Art Director reads the topic and picks the template, palette, slide count, tone and voice. |
 
