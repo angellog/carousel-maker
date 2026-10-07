@@ -16,3 +16,8 @@ output/
 # Composition source is tracked; its rendered and licensed assets are not.
 # compositions/brag/README.md says how to put them back.
 compositions/*/assets/
+
+# Caches the HyperFrames CLI writes next to the source: .thumbnails/ on
+# `npm run dev`, snapshots/ on `hyperframes snapshot`.
+compositions/*/.thumbnails/
+compositions/*/snapshots/
