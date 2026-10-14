@@ -1,0 +1,347 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<!--
+  Own-photos template: the user's photo is the world, and everything else is drawn on top
+  like a scrapbook — scribbles, chat bubbles, cutout stickers, taped polaroids.
+
+  Slide fields (all optional except what you use):
+    paper              background colour when there is no full-bleed photo (default cream)
+    backdrop           {src, blur:28, brightness:.85, saturate:1.15, pos, tint} — one of the user's
+                       own photos, heavily blurred, as a dreamy background instead of paper
+    pattern            "grid" | "dots" | "lines" — a light pattern over the backdrop or paper
+    photo              {src, fit:"cover"|"contain", pos:"50% 40%", zoom:1}   full-bleed photo
+    subject            {src}  the photo's same-size cutout, stacked over "behind" text so
+                       the text reads as sitting behind the person (needs photo.fit cover)
+    ink                default colour for type and scribbles (white on photos, ink on paper)
+    accent             one accent colour, pulled from the photo
+    items              list of elements, drawn in order (see TYPES below); every item takes
+                       x, y (px on the 1080x1350 canvas), rot (deg), and z (optional)
+    footer             false hides the handle / swipe footer
+  Plan fields: handle, accent, ink.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Caveat:wght@500;700&family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&family=Permanent+Marker&display=swap" rel="stylesheet">
+<style>
+  :root { --ink: #fff; --accent: #FFD23F; --paper: #F2EDE3; --dark: #17161A; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1080px; height: 1350px; overflow: hidden; background: var(--paper); }
+  #stage { position: relative; width: 1080px; height: 1350px; overflow: hidden; background: var(--paper); }
+
+  /* paper grain for slides without a full-bleed photo */
+  #stage.paper::before { content: ""; position: absolute; inset: 0; z-index: 0;
+    background: radial-gradient(ellipse at 30% 20%, rgba(255,255,255,.55), transparent 60%),
+                radial-gradient(ellipse at 80% 90%, rgba(120,100,70,.10), transparent 60%); }
+
+  .layer { position: absolute; inset: 0; }
+  .photo img, .subject img { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .photo { z-index: 1; }
+  .photo::after { content: ""; position: absolute; inset: 0;   /* light film grade */
+    background: linear-gradient(180deg, rgba(0,0,0,.28) 0%, rgba(0,0,0,0) 30%, rgba(0,0,0,0) 70%, rgba(0,0,0,.34) 100%); }
+  .behind { z-index: 2; }
+  .subject { z-index: 3; }
+  .front { z-index: 4; }
+  .grain { z-index: 9; pointer-events: none; opacity: .16; mix-blend-mode: overlay; }
+
+  .it { position: absolute; transform-origin: center center; }
+
+  /* type */
+  .t { white-space: pre-line; line-height: .95; }
+  .f-marker { font-family: "Permanent Marker", cursive; }
+  .f-hand { font-family: "Caveat", cursive; font-weight: 700; line-height: 1.0; }
+  .f-serif { font-family: "Instrument Serif", serif; line-height: .92; }
+  .f-caps { font-family: "Anton", sans-serif; text-transform: uppercase; line-height: .9; letter-spacing: .005em; }
+  .f-sans { font-family: "Inter", sans-serif; font-weight: 600; line-height: 1.15; }
+  .shadow { text-shadow: 0 2px 18px rgba(0,0,0,.45), 0 1px 3px rgba(0,0,0,.35); }
+  .hl { padding: .02em .18em; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+
+  /* chat bubbles (iMessage-ish) */
+  .bubble { font-family: -apple-system, "SF Pro Text", "Inter", sans-serif; font-size: 38px; line-height: 1.22;
+    padding: 20px 30px; border-radius: 42px; max-width: 760px; box-shadow: 0 10px 30px rgba(0,0,0,.18); }
+  .bubble.in { background: #E9E9EB; color: #111; border-bottom-left-radius: 12px; }
+  .bubble.out { background: #0A84FF; color: #fff; border-bottom-right-radius: 12px; }
+  .bubble .who { display: block; font-size: 24px; font-weight: 600; opacity: .55; margin-bottom: 2px; }
+  .meta { font-family: -apple-system, "Inter", sans-serif; font-size: 24px; font-weight: 600; color: rgba(255,255,255,.85); }
+
+  /* instagram-style comment */
+  .comment { display: flex; gap: 22px; align-items: center; background: #fff; color: #111; border-radius: 34px;
+    padding: 22px 34px 22px 22px; box-shadow: 0 14px 40px rgba(0,0,0,.25); font-family: "Inter", sans-serif; }
+  .comment .av { width: 74px; height: 74px; border-radius: 50%; flex: none;
+    background: conic-gradient(#FEDA75, #FA7E1E, #D62976, #962FBF, #4F5BD5, #FEDA75); padding: 4px; }
+  .comment .av i { display: block; width: 100%; height: 100%; border-radius: 50%; background: #ddd; border: 3px solid #fff; }
+  .comment b { font-size: 28px; } .comment span { display: block; font-size: 44px; font-weight: 700; letter-spacing: .02em; }
+  .comment small { display: block; font-size: 22px; color: #888; font-weight: 500; }
+
+  /* cutout sticker: white die-cut edge + soft drop */
+  .sticker img { display: block; width: 100%; height: auto; }
+  .sticker.edge img { filter: drop-shadow(5px 0 0 #fff) drop-shadow(-5px 0 0 #fff) drop-shadow(0 5px 0 #fff)
+      drop-shadow(0 -5px 0 #fff) drop-shadow(0 18px 22px rgba(0,0,0,.28)); }
+  .sticker.plain img { filter: drop-shadow(0 18px 26px rgba(0,0,0,.35)); }
+
+  /* polaroid / taped print — photo shown whole (scale to fit) or cropped */
+  .polaroid { background: #fff; padding: 22px 22px 0; box-shadow: 0 18px 40px rgba(0,0,0,.22), 0 2px 6px rgba(0,0,0,.12); }
+  .polaroid .ph { width: 100%; background-size: cover; background-position: center; }
+  .polaroid .cap { font-family: "Caveat", cursive; font-weight: 700; color: #222; font-size: 46px; text-align: center; padding: 10px 6px 18px; min-height: 40px; }
+  .print { box-shadow: 0 16px 36px rgba(0,0,0,.25); border: 10px solid #fff; }
+  .tape { position: absolute; width: 170px; height: 52px; background: rgba(240,228,190,.72);
+    box-shadow: 0 2px 6px rgba(0,0,0,.08); }
+
+  svg.scribbles { position: absolute; inset: 0; width: 1080px; height: 1350px; overflow: visible; }
+  svg.scribbles path { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* footer */
+  .foot { position: absolute; left: 56px; right: 56px; bottom: 44px; z-index: 8; display: flex;
+    justify-content: space-between; align-items: center; font-family: "Caveat", cursive; font-weight: 700; font-size: 40px; }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<script>
+(() => {
+const S = __SLIDE_JSON__;
+const P = __PLAN_JSON__;
+const stage = document.getElementById("stage");
+const hasPhoto = !!(S.photo && S.photo.src);
+const hasBackdrop = !!(S.backdrop && S.backdrop.src);
+// type sits on an image (photo or blurred backdrop): white ink + soft shadows
+const onImage = hasPhoto || hasBackdrop;
+const INK = S.ink || P.ink || (onImage ? "#ffffff" : "#17161A");
+const ACCENT = S.accent || P.accent || "#FFD23F";
+document.documentElement.style.setProperty("--ink", INK);
+document.documentElement.style.setProperty("--accent", ACCENT);
+if (S.paper) { document.documentElement.style.setProperty("--paper", S.paper); }
+if (!onImage) stage.classList.add("paper");
+
+// seeded RNG so a slide always draws the same wobble
+let seed = (S.index || 1) * 9301 + 49297;
+const rnd = () => ((seed = (seed * 9301 + 49297) % 233280) / 233280);
+const jit = (a) => (rnd() - .5) * 2 * a;
+const col = (c) => c === "accent" ? ACCENT : c === "ink" || !c ? INK : c;
+const el = (tag, cls, parent) => { const e = document.createElement(tag); if (cls) e.className = cls; (parent || stage).appendChild(e); return e; };
+
+function layer(cls) { return el("div", "layer " + cls); }
+// blurred backdrop + optional pattern sit under everything else
+if (hasBackdrop) {
+  const b = layer("backdrop");
+  b.style.zIndex = 0;
+  const B = S.backdrop;
+  const img = el("img", "", b);
+  img.src = B.src;
+  Object.assign(img.style, {
+    position: "absolute", left: "-8%", top: "-8%", width: "116%", height: "116%",
+    objectFit: "cover", objectPosition: B.pos || "50% 50%",
+    filter: `blur(${B.blur ?? 28}px) brightness(${B.brightness ?? 0.85}) saturate(${B.saturate ?? 1.15})`,
+  });
+  if (B.tint) { const tn = el("div", "", b); Object.assign(tn.style, { position: "absolute", inset: "0", background: B.tint }); }
+}
+if (S.pattern) {
+  const pt = layer("pattern");
+  pt.style.zIndex = 0;
+  const c = onImage ? "rgba(255,255,255,.16)" : "rgba(23,22,26,.08)";
+  pt.style.backgroundImage = {
+    grid: `linear-gradient(${c} 2px, transparent 2px), linear-gradient(90deg, ${c} 2px, transparent 2px)`,
+    dots: `radial-gradient(${c} 3px, transparent 3.5px)`,
+    lines: `linear-gradient(${c} 2px, transparent 2px)`,
+  }[S.pattern] || "none";
+  pt.style.backgroundSize = S.pattern === "dots" ? "36px 36px" : "54px 54px";
+}
+const L = { photo: layer("photo"), behind: layer("behind"), subject: layer("subject"), front: layer("front") };
+
+// --- full-bleed photo + aligned cutout (identical fit, so they stack exactly) ---
+function fitImg(parent, src, o) {
+  const img = el("img", "", parent);
+  img.src = src;
+  img.style.objectFit = o.fit || "cover";
+  img.style.objectPosition = o.pos || "50% 50%";
+  const z = o.zoom || 1;
+  if (z !== 1) { img.style.transform = `scale(${z})`; img.style.transformOrigin = o.pos || "50% 50%"; }
+  return img;
+}
+if (hasPhoto) {
+  if ((S.photo.fit || "cover") === "contain") L.photo.style.background = S.paper || "#111";
+  fitImg(L.photo, S.photo.src, S.photo);
+  if (S.subject && S.subject.src) fitImg(L.subject, S.subject.src, S.photo);
+}
+
+// --- items ---
+const svgNS = "http://www.w3.org/2000/svg";
+function svgFor(layerEl) {
+  let s = layerEl.querySelector("svg.scribbles");
+  if (!s) { s = document.createElementNS(svgNS, "svg"); s.setAttribute("class", "scribbles"); s.setAttribute("viewBox", "0 0 1080 1350"); layerEl.appendChild(s); }
+  return s;
+}
+function stroke(svg, d, it, w) {
+  // marker look: the line twice, the second a hair offset and thinner
+  [[0, 1], [1.4, .55]].forEach(([off, k]) => {
+    const p = document.createElementNS(svgNS, "path");
+    p.setAttribute("d", d);
+    p.setAttribute("stroke", col(it.color));
+    p.setAttribute("stroke-width", (w || it.width || 7) * k);
+    p.setAttribute("opacity", k === 1 ? 1 : .5);
+    if (off) p.setAttribute("transform", `translate(${off},${off})`);
+    if (it.shadow !== false && onImage) p.style.filter = "drop-shadow(0 2px 6px rgba(0,0,0,.35))";
+    svg.appendChild(p);
+  });
+}
+const pathOf = (pts) => pts.map((p, i) => (i ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1)).join(" ");
+
+const DRAW = {
+  arrow(it, svg) {          // from [x,y] -> to [x,y], bend -1..1
+    const [x1, y1] = it.from, [x2, y2] = it.to, bend = it.bend ?? .35;
+    const mx = (x1 + x2) / 2, my = (y1 + y2) / 2, dx = x2 - x1, dy = y2 - y1, len = Math.hypot(dx, dy);
+    const cx = mx - dy * bend, cy = my + dx * bend;
+    const pts = [];
+    for (let t = 0; t <= 1.0001; t += .04) {
+      const x = (1 - t) ** 2 * x1 + 2 * (1 - t) * t * cx + t * t * x2;
+      const y = (1 - t) ** 2 * y1 + 2 * (1 - t) * t * cy + t * t * y2;
+      pts.push([x + jit(1.6), y + jit(1.6)]);
+    }
+    stroke(svg, pathOf(pts), it);
+    const a = Math.atan2(y2 - (cy * .25 + y2 * .75), x2 - (cx * .25 + x2 * .75)), h = it.head || Math.min(46, len * .22);
+    [2.55, -2.55].forEach((s) => stroke(svg, pathOf([[x2 + Math.cos(a + s) * h, y2 + Math.sin(a + s) * h], [x2, y2]]), it));
+  },
+  circle(it, svg) {         // cx, cy, rx, ry — hand loop that overshoots its start
+    const pts = [], start = rnd() * Math.PI * 2, turns = 1.12;
+    for (let t = 0; t <= turns; t += .02) {
+      const a = start + t * Math.PI * 2, wob = 1 + jit(.025) + t * .05;
+      pts.push([it.cx + Math.cos(a) * it.rx * wob, it.cy + Math.sin(a) * it.ry * wob]);
+    }
+    stroke(svg, pathOf(pts), it);
+  },
+  underline(it, svg) {      // x1, x2, y — wavy, optional double
+    const n = it.double ? 2 : 1;
+    for (let k = 0; k < n; k++) {
+      const pts = [];
+      for (let x = it.x1; x <= it.x2; x += 18) pts.push([x, it.y + k * 18 + Math.sin(x / 40 + k) * (it.wave ?? 4) + jit(1.5)]);
+      stroke(svg, pathOf(pts), it);
+    }
+  },
+  strike(it, svg) {         // x1, x2, y — a scratchy cross-out
+    const pts = [];
+    for (let i = 0; i < 5; i++) pts.push([i % 2 ? it.x2 + jit(8) : it.x1 + jit(8), it.y + (i - 2) * 9 + jit(4)]);
+    stroke(svg, pathOf(pts), it);
+  },
+  star(it, svg) {           // x, y, size
+    const pts = [];
+    for (let i = 0; i <= 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? it.size * .42 : it.size; pts.push([it.x + Math.cos(a) * r + jit(2), it.y + Math.sin(a) * r + jit(2)]); }
+    stroke(svg, pathOf(pts), it);
+  },
+  sparkle(it, svg) {        // x, y, size — three little burst lines
+    [-50, 0, 50].forEach((deg) => { const a = (deg - 90) * Math.PI / 180, r0 = it.size * .35, r1 = it.size;
+      stroke(svg, pathOf([[it.x + Math.cos(a) * r0, it.y + Math.sin(a) * r0], [it.x + Math.cos(a) * r1, it.y + Math.sin(a) * r1]]), it); });
+  },
+  heart(it, svg) {
+    const pts = [];
+    for (let t = 0; t <= Math.PI * 2.04; t += .08) {
+      const x = 16 * Math.sin(t) ** 3, y = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
+      pts.push([it.x + x * it.size / 16 + jit(1), it.y + y * it.size / 16 + jit(1)]);
+    }
+    stroke(svg, pathOf(pts), it);
+  },
+  dotted(it, svg) {         // pts: [[x,y],...] — a dashed footstep trail
+    const p = document.createElementNS(svgNS, "path");
+    p.setAttribute("d", "M" + it.pts.map((q) => q.join(" ")).join(" T"));
+    p.setAttribute("stroke", col(it.color)); p.setAttribute("stroke-width", it.width || 6);
+    p.setAttribute("stroke-dasharray", "2 22"); svg.appendChild(p);
+  },
+  scribble(it, svg) {       // x, y, w, h — a zig-zag scribble-out
+    const pts = [];
+    for (let i = 0; i < 9; i++) pts.push([it.x + (i % 2 ? it.w : 0) + jit(10), it.y + i * it.h / 8 + jit(5)]);
+    stroke(svg, pathOf(pts), it);
+  },
+};
+
+function place(e, it) {
+  e.style.left = it.x + "px"; e.style.top = it.y + "px";
+  if (it.w) e.style.width = it.w + "px";
+  if (it.h) e.style.height = it.h + "px";
+  if (it.anchor === "center") e.style.translate = "-50% -50%";
+  if (it.anchor === "right") e.style.translate = "-100% 0";
+  if (it.rot) e.style.rotate = it.rot + "deg";
+  if (it.z) e.style.zIndex = it.z;
+}
+
+function item(it) {
+  const target = it.behind ? L.behind : L.front;
+  if (DRAW[it.type]) { DRAW[it.type](it, svgFor(target)); return; }
+  let e;
+  switch (it.type) {
+    case "text": {
+      e = el("div", `it t f-${it.font || "hand"}` + (it.shadow === false || !onImage ? "" : " shadow"), target);
+      e.style.fontSize = (it.size || 60) + "px";
+      e.style.color = col(it.color);
+      if (it.align) e.style.textAlign = it.align;
+      if (it.italic) e.style.fontStyle = "italic";
+      if (it.lh) e.style.lineHeight = it.lh;
+      if (it.ls) e.style.letterSpacing = it.ls;
+      if (it.bg) {           // highlighter / label strip behind the words
+        const s = el("span", "hl", e); s.style.background = col(it.bg); s.style.color = col(it.color); s.textContent = it.text;
+      } else e.innerHTML = it.html || "";
+      if (!it.bg && !it.html) e.textContent = it.text;
+      if (it.fit) {          // auto-shrink to fit width w on one line per row
+        let size = it.size || 200; e.style.whiteSpace = "pre"; e.style.width = "auto";
+        while (e.scrollWidth > it.fit && size > 20) { size -= 2; e.style.fontSize = size + "px"; }
+      }
+      break;
+    }
+    case "bubble": {
+      e = el("div", `it bubble ${it.side || "in"}`, target);
+      if (it.who) { const w = el("span", "who", e); w.textContent = it.who; }
+      e.appendChild(document.createTextNode(it.text));
+      if (it.side === "out") { e.style.right = (1080 - it.x) + "px"; it = { ...it, x: undefined }; }
+      break;
+    }
+    case "meta": { e = el("div", "it meta", target); e.textContent = it.text; if (it.color) e.style.color = col(it.color); break; }
+    case "comment": {
+      e = el("div", "it comment", target);
+      e.innerHTML = `<div class="av"><i></i></div><div><b></b><small></small><span></span></div>`;
+      e.querySelector("b").textContent = it.who || "you";
+      e.querySelector("small").textContent = it.time || "just now";
+      e.querySelector("span").textContent = it.text;
+      break;
+    }
+    case "sticker": {
+      e = el("div", `it sticker ${it.edge === false ? "plain" : "edge"}`, target);
+      const img = el("img", "", e); img.src = it.src;
+      if (it.flip) img.style.transform = "scaleX(-1)";
+      break;
+    }
+    case "polaroid": case "print": {
+      e = el("div", "it " + it.type, target);
+      const ph = el("div", "ph", e);
+      ph.style.backgroundImage = `url(${it.src})`;
+      ph.style.height = (it.ph || it.w * .75) + "px";
+      if (it.pos) ph.style.backgroundPosition = it.pos;
+      if (it.type === "print") { e.style.width = it.w + "px"; ph.style.width = "100%"; }
+      if (it.type === "polaroid") { const c = el("div", "cap", e); c.textContent = it.caption || ""; }
+      if (it.tape !== false) {
+        const t = el("div", "tape", e); t.style.left = "50%"; t.style.top = "-26px"; t.style.translate = "-50% 0"; t.style.rotate = jit(8) + "deg";
+      }
+      break;
+    }
+    case "tape": { e = el("div", "it tape", target); break; }
+    default: return;
+  }
+  place(e, it);
+  if (it.type === "bubble" && it.side === "out") e.style.left = "auto";
+}
+(S.items || []).forEach(item);
+
+// --- footer ---
+if (S.footer !== false) {
+  const f = el("div", "foot");
+  f.style.color = S.footer_color ? col(S.footer_color) : INK;
+  if (onImage) f.style.textShadow = "0 2px 10px rgba(0,0,0,.45)";
+  const h = el("span", "", f); h.textContent = P.handle || "";
+  const n = el("span", "", f); n.textContent = S.index < P.total ? `${S.index}/${P.total}  swipe →` : `${S.index}/${P.total}`;
+}
+
+// --- film grain over everything ---
+const g = layer("grain");
+g.innerHTML = `<svg width="1080" height="1350"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/></filter><rect width="100%" height="100%" filter="url(#n)"/></svg>`;
+})();
+</script>
+</body>
+</html>

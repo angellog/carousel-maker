@@ -16,3 +16,10 @@ output/
 # Composition source is tracked; its rendered and licensed assets are not.
 # compositions/brag/README.md says how to put them back.
 compositions/*/assets/
+
+# Carousel Kit (local Claude workflow) — private photos and generated media never go in git
+carousel/my-images/
+carousel/output/
+carousel/runs/
+carousel/profile.json
+carousel/scripts/.bin/
